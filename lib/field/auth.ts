@@ -75,17 +75,14 @@ export const getFieldContext = cache(async (): Promise<FieldContext | null> => {
   const session = await readSession();
   if (!session) return null;
   await ensureFieldTables();
-  const [team] = await query<{ id: number; name: string; code: string }>(
-    `SELECT id, name, code FROM FieldTeam WHERE id = ?`, [session.teamId]);
+  const [team] = await query<{ id: number; name: string; code: string; memberId: number | null; memberName: string | null }>(
+    `SELECT t.id, t.name, t.code, m.id AS memberId, m.name AS memberName
+     FROM FieldTeam t
+     LEFT JOIN FieldTeamMember m ON m.teamId = t.id AND m.id = ? AND m.active = 1
+     WHERE t.id = ?`, [session.memberId ?? 0, session.teamId]);
   if (!team) return null;
-  let memberName: string | null = null;
-  let memberId: number | null = null;
-  if (session.memberId) {
-    const [m] = await query<{ id: number; name: string }>(
-      `SELECT id, name FROM FieldTeamMember WHERE id = ? AND teamId = ? AND active = 1`, [session.memberId, team.id]);
-    if (m) { memberId = Number(m.id); memberName = m.name; }
-  }
-  return { teamId: Number(team.id), teamName: team.name, teamCode: team.code, memberId, memberName };
+  const memberId = team.memberId == null ? null : Number(team.memberId);
+  return { teamId: Number(team.id), teamName: team.name, teamCode: team.code, memberId, memberName: memberId ? team.memberName : null };
 });
 
 export type ApiAuth =

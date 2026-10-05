@@ -4,6 +4,7 @@ import { randomInt } from 'crypto';
 import { query, mutate } from '@/lib/db';
 import { ensureFieldTables, cleanName } from '@/lib/field/db';
 import { bad, setFieldCookie, signFieldToken } from '@/lib/field/auth';
+import { clientIp, isLimited, recordHit } from '@/lib/field/rate-limit';
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
@@ -23,8 +24,13 @@ export async function POST(req: NextRequest) {
 
   if (teamName.length < 2) return bad('اكتب اسم الفريق');
   if (adminName.length < 2) return bad('اكتب اسم المسؤول عن الفريق');
-  if (password.length < 6) return bad('كلمة المرور يجب ألا تقل عن 6 أحرف');
+  if (password.length < 8) return bad('كلمة المرور يجب ألا تقل عن 8 أحرف');
+  if (password.length > 128) return bad('كلمة المرور طويلة جداً');
   if (password !== confirm) return bad('كلمتا المرور غير متطابقتين');
+
+  // حد إنشاء الفرق من العنوان نفسه: 5 فرق في الساعة
+  const ipKey = `register-ip:${clientIp(req)}`;
+  if (await isLimited(ipKey, 5)) return bad('أنشأت عدة فرق خلال وقت قصير، حاول لاحقاً', 429);
 
   const [exists] = await query(`SELECT id FROM FieldTeam WHERE name = ? COLLATE NOCASE`, [teamName]);
   if (exists) return bad('يوجد فريق بهذا الاسم، اختر اسماً آخر', 409);
@@ -42,6 +48,8 @@ export async function POST(req: NextRequest) {
     [teamName, code, adminName, passwordHash]);
   // المسؤول هو أول عضو في الفريق، ويُختار تلقائياً كمستخدم حالي
   const member = await mutate(`INSERT INTO FieldTeamMember (teamId, name) VALUES (?, ?)`, [team.id, adminName]);
+
+  await recordHit(ipKey, 60 * 60 * 1000);
 
   const res = NextResponse.json({ ok: true, code });
   setFieldCookie(res, await signFieldToken({ teamId: team.id, memberId: member.id }));

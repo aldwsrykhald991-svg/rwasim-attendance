@@ -2,8 +2,7 @@
 
 // شاشة التحضير الميداني — مصممة للجوال أولاً: السرعة ثم الوضوح ثم الجمال.
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SheetRow } from '@/lib/field/data';
 import type { AttendanceStatus } from '@/lib/field/db';
 import { formatStamp, STATUS_LABEL } from '@/lib/field/format';
@@ -36,29 +35,100 @@ const CARD_TONE: Record<AttendanceStatus, string> = {
   NOT_MARKED: 'border-fd-line',
 };
 
+/** توحيد الأحرف العربية للبحث: بلا تشكيل، والهمزات والتاء المربوطة والألف المقصورة موحّدة */
+function norm(v: string): string {
+  return v.replace(/[ً-ْـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').toLowerCase().trim();
+}
+
+interface Desired { status: AttendanceStatus; otherReason: string | null }
+
+const SYNC_MS = 15000;
+
 export default function AttendanceSheet(props: Props) {
   const { projectId, dayId, groupId, readOnly } = props;
-  const router = useRouter();
   const [rows, setRows] = useState(props.rows);
   const [pending, setPending] = useState<Set<number>>(new Set());
+  const [unsaved, setUnsaved] = useState<Set<number>>(new Set());
+  const [online, setOnline] = useState(true);
   const [otherFor, setOtherFor] = useState<number | null>(null);
   const [reason, setReason] = useState('');
   const [onlyRemaining, setOnlyRemaining] = useState(false);
+  const [search, setSearch] = useState('');
   const [confirmAll, setConfirmAll] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [toast, setToast] = useState('');
 
+  // آخر حالة مؤكدة من الخادم لكل طالب، وطابور «آخر حالة مطلوبة» لكل طالب
+  const confirmed = useRef(new Map(props.rows.map(r => [r.studentId, r])));
+  const queue = useRef(new Map<number, Desired>());
+  const inflight = useRef(new Set<number>());
+  const attempts = useRef(new Map<number, number>());
+  const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
+
   const marked = rows.filter(r => r.status !== 'NOT_MARKED').length;
   const total = rows.length;
   const remaining = total - marked;
-  const visible = useMemo(() => (onlyRemaining ? rows.filter(r => r.status === 'NOT_MARKED') : rows), [rows, onlyRemaining]);
+  const visible = useMemo(() => {
+    const q = norm(search);
+    return rows.filter(r => (!onlyRemaining || r.status === 'NOT_MARKED') && (!q || norm(r.name).includes(q)));
+  }, [rows, onlyRemaining, search]);
 
   function flash(msg: string) {
     setToast(msg);
     setTimeout(() => setToast(''), 3500);
   }
 
-  async function save(studentId: number, status: AttendanceStatus, otherReason: string | null = null) {
+  const setFlag = (setter: typeof setPending, id: number, on: boolean) =>
+    setter(prev => { const n = new Set(prev); if (on) n.add(id); else n.delete(id); return n; });
+
+  /**
+   * يرسل آخر حالة مطلوبة للطالب، طلباً واحداً في كل مرة (لا تتسابق الطلبات).
+   * عند انقطاع الشبكة تبقى الحالة ظاهرة مع علامة «لم يُحفظ» ويُعاد الإرسال تلقائياً.
+   */
+  const pump = useCallback(async (studentId: number) => {
+    if (inflight.current.has(studentId)) return;
+    inflight.current.add(studentId);
+    try {
+      while (queue.current.has(studentId)) {
+        const want = queue.current.get(studentId)!;
+        queue.current.delete(studentId);
+        const res = await fieldApi('/api/field/attendance', { projectId, dayId, studentId, ...want });
+        if (res.ok) {
+          attempts.current.delete(studentId);
+          setFlag(setUnsaved, studentId, false);
+          setRows(rs => {
+            const cur = rs.find(r => r.studentId === studentId);
+            if (cur && !queue.current.has(studentId)) confirmed.current.set(studentId, cur);
+            return rs;
+          });
+          continue;
+        }
+        if (res.retryable) {
+          // لا نفقد اختيار المشرف: نعيده للطابور ما لم يختر حالة أحدث
+          if (!queue.current.has(studentId)) queue.current.set(studentId, want);
+          setFlag(setUnsaved, studentId, true);
+          const n = (attempts.current.get(studentId) ?? 0) + 1;
+          attempts.current.set(studentId, n);
+          const delay = Math.min(30000, 2000 * 2 ** Math.min(n - 1, 4));
+          clearTimeout(timers.current.get(studentId));
+          timers.current.set(studentId, setTimeout(() => pump(studentId), delay));
+          return;
+        }
+        // رفض من الخادم (صلاحية/أرشفة/جلسة): نرجع للحالة المؤكدة ونعرض السبب
+        if (!queue.current.has(studentId)) {
+          const back = confirmed.current.get(studentId);
+          if (back) setRows(rs => rs.map(r => r.studentId === studentId ? back : r));
+          setFlag(setUnsaved, studentId, false);
+        }
+        flash(res.status === 401 ? 'انتهت الجلسة، سجّل الدخول من جديد' : res.error);
+      }
+    } finally {
+      inflight.current.delete(studentId);
+      if (!queue.current.has(studentId)) setFlag(setPending, studentId, false);
+    }
+  }, [projectId, dayId]);
+
+  function save(studentId: number, status: AttendanceStatus, otherReason: string | null = null) {
     const before = rows.find(r => r.studentId === studentId);
     if (!before) return;
     if (before.status === status && (before.otherReason ?? null) === otherReason) return;
@@ -69,14 +139,53 @@ export default function AttendanceSheet(props: Props) {
       recordedByName: isFirst ? props.memberName : r.recordedByName, recordedAt: isFirst ? now : r.recordedAt,
       updatedByName: props.memberName, updatedAt: now,
     } : r));
-    setPending(p => new Set(p).add(studentId));
-    const res = await fieldApi('/api/field/attendance', { projectId, dayId, studentId, status, otherReason });
-    setPending(p => { const n = new Set(p); n.delete(studentId); return n; });
-    if (!res.ok) {
-      setRows(rs => rs.map(r => r.studentId === studentId ? before : r));
-      flash(res.error);
-    }
+    queue.current.set(studentId, { status, otherReason });
+    setFlag(setPending, studentId, true);
+    clearTimeout(timers.current.get(studentId));
+    pump(studentId);
   }
+
+  /** مزامنة مع الخادم: تُحدّث الطلاب الذين لا تغيير معلّق عليهم (لدعم أكثر من مشرف) */
+  const sync = useCallback(async () => {
+    const res = await fieldApi<{ rows: SheetRow[] }>(
+      `/api/field/attendance?projectId=${projectId}&dayId=${dayId}&groupId=${groupId}`, undefined, 'GET');
+    if (!res.ok) return false;
+    const fresh = new Map(res.data.rows.map(r => [r.studentId, r]));
+    const busy = (id: number) => queue.current.has(id) || inflight.current.has(id);
+    for (const [id, r] of fresh) if (!busy(id)) confirmed.current.set(id, r);
+    setRows(rs => {
+      const kept = rs.filter(r => fresh.has(r.studentId) || busy(r.studentId)).map(r => (busy(r.studentId) ? r : fresh.get(r.studentId)!));
+      const have = new Set(kept.map(r => r.studentId));
+      const added = res.data.rows.filter(r => !have.has(r.studentId));
+      return added.length ? [...kept, ...added].sort((x, y) => x.name.localeCompare(y.name, 'ar', { numeric: true, sensitivity: 'base' })) : kept;
+    });
+    return true;
+  }, [projectId, dayId, groupId]);
+
+  useEffect(() => {
+    const retryAll = () => { for (const id of queue.current.keys()) { clearTimeout(timers.current.get(id)); pump(id); } };
+    const onOnline = () => { setOnline(true); retryAll(); sync(); };
+    const onOffline = () => setOnline(false);
+    const onVisible = () => { if (document.visibilityState === 'visible') { retryAll(); sync(); } };
+    const onLeave = (e: BeforeUnloadEvent) => {
+      if (queue.current.size || inflight.current.size) { e.preventDefault(); e.returnValue = ''; }
+    };
+    setOnline(navigator.onLine);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('beforeunload', onLeave);
+    const tick = setInterval(() => { if (document.visibilityState === 'visible' && navigator.onLine) sync(); }, SYNC_MS);
+    const pendingTimers = timers.current;
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('beforeunload', onLeave);
+      clearInterval(tick);
+      for (const t of pendingTimers.values()) clearTimeout(t);
+    };
+  }, [pump, sync]);
 
   function tap(row: SheetRow, status: AttendanceStatus) {
     if (status === 'OTHER') {
@@ -88,12 +197,12 @@ export default function AttendanceSheet(props: Props) {
     save(row.studentId, status);
   }
 
-  async function saveOther(e: React.FormEvent) {
+  function saveOther(e: React.FormEvent) {
     e.preventDefault();
     if (otherFor == null || !reason.trim()) return;
     const id = otherFor;
     setOtherFor(null);
-    await save(id, 'OTHER', reason.trim());
+    save(id, 'OTHER', reason.trim());
   }
 
   async function markAllPresent() {
@@ -102,15 +211,20 @@ export default function AttendanceSheet(props: Props) {
     setBulkBusy(false);
     setConfirmAll(false);
     if (!res.ok) return flash(res.error);
-    const now = new Date().toISOString();
-    setRows(rs => rs.map(r => r.status === 'NOT_MARKED' ? {
-      ...r, status: 'PRESENT', otherReason: null,
-      recordedByName: r.recordedByName ?? props.memberName, recordedAt: r.recordedAt ?? now,
-      updatedByName: props.memberName, updatedAt: now,
-    } : r));
+    // نقرأ النتيجة من الخادم بدل تخمينها محلياً (قد يكون مشرف آخر غيّر حالات في الأثناء)
+    const synced = await sync();
+    if (!synced) {
+      const now = new Date().toISOString();
+      setRows(rs => rs.map(r => r.status === 'NOT_MARKED' && !queue.current.has(r.studentId) ? {
+        ...r, status: 'PRESENT', otherReason: null,
+        recordedByName: r.recordedByName ?? props.memberName, recordedAt: r.recordedAt ?? now,
+        updatedByName: props.memberName, updatedAt: now,
+      } : r));
+    }
     flash(`تم تسجيل ${res.data.changed} طالب كحاضرين`);
-    router.refresh();
   }
+
+  const waiting = unsaved.size;
 
   return (
     <div className="pb-28" data-fx="off">
@@ -132,6 +246,25 @@ export default function AttendanceSheet(props: Props) {
         </div>
       )}
 
+      {!readOnly && (!online || waiting > 0) && (
+        <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status" aria-live="polite">
+          <i className="fa-solid fa-wifi ml-1" />
+          {!online ? 'لا يوجد اتصال بالإنترنت.' : 'الاتصال ضعيف.'}
+          {waiting > 0
+            ? ` ${waiting} ${waiting === 1 ? 'تغيير' : 'تغييرات'} لم تُحفظ بعد، وستُحفظ تلقائياً عند عودة الاتصال. لا تغلق الصفحة.`
+            : ' يمكنك المتابعة وستُحفظ التغييرات عند عودة الاتصال.'}
+        </div>
+      )}
+
+      {total > 8 && (
+        <div className="mt-4">
+          <label className="sr-only" htmlFor="student-search">بحث باسم الطالب</label>
+          <input id="student-search" type="search" inputMode="search" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="ابحث باسم الطالب" autoComplete="off"
+            className="w-full rounded-xl border border-fd-line bg-white px-4 py-3 text-slate-800 outline-none focus:border-fd-teal focus:ring-2 focus:ring-fd-teal/20" />
+        </div>
+      )}
+
       {total > 0 && (
         <div className="mt-4 flex gap-2 text-sm">
           <button type="button" onClick={() => setOnlyRemaining(false)}
@@ -147,8 +280,11 @@ export default function AttendanceSheet(props: Props) {
 
       <ul className="mt-3 space-y-2.5">
         {total === 0 && <li className="rounded-2xl border border-dashed border-fd-line bg-white p-6 text-center text-sm text-fd-muted">لا يوجد طلاب في هذه المجموعة.</li>}
-        {onlyRemaining && total > 0 && remaining === 0 && (
+        {onlyRemaining && !search && total > 0 && remaining === 0 && (
           <li className="rounded-2xl bg-emerald-50 p-6 text-center text-sm font-semibold text-emerald-700">تم تحضير جميع الطلاب ✓</li>
+        )}
+        {search && visible.length === 0 && total > 0 && (
+          <li className="rounded-2xl border border-dashed border-fd-line bg-white p-6 text-center text-sm text-fd-muted">لا يوجد طالب بهذا الاسم في المجموعة.</li>
         )}
         {visible.map(r => {
           const busy = pending.has(r.studentId);
@@ -169,7 +305,14 @@ export default function AttendanceSheet(props: Props) {
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  {busy && <i className="fa-solid fa-spinner animate-spin text-sm text-fd-muted" aria-label="جارٍ الحفظ" />}
+                  {unsaved.has(r.studentId) ? (
+                    <button type="button" onClick={() => { clearTimeout(timers.current.get(r.studentId)); pump(r.studentId); }}
+                      className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-300">
+                      لم يُحفظ • إعادة
+                    </button>
+                  ) : busy ? (
+                    <span className="text-xs text-fd-muted" role="status">جارٍ الحفظ…</span>
+                  ) : null}
                   {readOnly || r.status === 'NOT_MARKED' ? <AttendanceBadge status={r.status} /> : null}
                 </div>
               </div>

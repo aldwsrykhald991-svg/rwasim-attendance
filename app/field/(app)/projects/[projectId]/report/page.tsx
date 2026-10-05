@@ -68,7 +68,13 @@ export default async function ReportPage({ params }: { params: Promise<{ project
   return (
     <div>
       <PageTitle back={{ href: `/field/projects/${projectId}`, label: project.name }} title="ملخص الحضور"
-        sub={`${project.name} • ${days.length} ${days.length === 1 ? 'يوم' : 'أيام'}`} />
+        sub={`${project.name} • ${days.length} ${days.length === 1 ? 'يوم' : 'أيام'}`}
+        actions={
+          <a href={`/api/field/projects/${projectId}/export`} download
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-fd-line bg-white px-4 py-2.5 font-medium text-fd-petrol hover:bg-slate-50">
+            <i className="fa-solid fa-file-arrow-down" /> تنزيل Excel (CSV)
+          </a>
+        } />
 
       <SectionTitle>الإجمالي للمشروع</SectionTitle>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">

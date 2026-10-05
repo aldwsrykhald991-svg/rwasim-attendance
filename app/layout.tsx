@@ -4,6 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'منصة التحضير',
   description: 'منصة لتحضير الطلاب في البرامج',
+  robots: { index: false, follow: false },
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#0a4f59' };
 

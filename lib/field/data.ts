@@ -16,6 +16,10 @@ export interface GroupRow { id: number; name: string; sortOrder: number }
 
 export interface Counts { total: number; present: number; absent: number; other: number; notMarked: number; marked: number }
 
+// ترتيب عربي طبيعي: «طالب 2» قبل «طالب 10»
+const collator = new Intl.Collator('ar', { numeric: true, sensitivity: 'base' });
+const byName = (a: { name: string }, b: { name: string }) => collator.compare(a.name, b.name);
+
 function emptyCounts(total = 0): Counts {
   return { total, present: 0, absent: 0, other: 0, notMarked: total, marked: 0 };
 }
@@ -176,7 +180,7 @@ export async function getGroupSheet(teamId: number, projectId: number, dayId: nu
        ON a.projectId = pp.projectId AND a.studentId = pp.studentId AND a.projectDayId = ? AND a.teamId = pp.teamId
      WHERE pp.projectId = ? AND pp.groupId = ? AND pp.teamId = ?
      ORDER BY pp.snapshotName`, [dayId, projectId, groupId, teamId]);
-  return rows.map(r => ({ ...r, studentId: Number(r.studentId) }));
+  return rows.map(r => ({ ...r, studentId: Number(r.studentId) })).sort(byName);
 }
 
 export async function getOtherCases(teamId: number, projectId: number) {
@@ -215,5 +219,5 @@ export async function getDayRoster(teamId: number, projectId: number, dayId: num
        ON a.projectId = pp.projectId AND a.studentId = pp.studentId AND a.projectDayId = ? AND a.teamId = pp.teamId
      WHERE pp.projectId = ? AND pp.teamId = ?
      ORDER BY pp.snapshotName`, [dayId, projectId, teamId]);
-  return rows.map(r => ({ ...r, groupId: Number(r.groupId), studentId: Number(r.studentId) }));
+  return rows.map(r => ({ ...r, groupId: Number(r.groupId), studentId: Number(r.studentId) })).sort(byName);
 }

@@ -37,9 +37,10 @@ export default function RosterImport({ onApply, busy = false, applyLabel = 'اع
     setFileName(f.name);
     try {
       load(await fileToRows(f));
-    } catch {
+    } catch (e) {
       setTable(null);
-      setError('تعذرت قراءة الملف. استخدم ملف Excel أو CSV، أو الصق الأسماء نصاً.');
+      const msg = e instanceof Error && /[\u0600-\u06FF]/.test(e.message) ? e.message : '';
+      setError(msg || 'تعذرت قراءة الملف. استخدم ملف Excel (‎.xlsx‎) أو CSV، أو الصق الأسماء نصاً.');
     }
   }
 
@@ -70,7 +71,7 @@ export default function RosterImport({ onApply, busy = false, applyLabel = 'اع
               <i className="fa-solid fa-file-excel text-2xl text-fd-teal" />
               <span className="font-semibold text-fd-petrol">{fileName || 'اختر ملف السجل'}</span>
               <span className="text-xs text-fd-muted">ملف فيه عمود للاسم وعمود للمجموعة — يتعرف النظام عليهما تلقائياً</span>
-              <input ref={fileRef} type="file" className="sr-only" accept=".xlsx,.xls,.csv,.txt,.ods"
+              <input ref={fileRef} type="file" className="sr-only" accept=".xlsx,.csv,.txt"
                 onChange={e => onFile(e.target.files?.[0])} />
             </label>
           ) : (

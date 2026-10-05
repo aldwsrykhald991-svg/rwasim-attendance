@@ -107,20 +107,25 @@ export default function AuthScreen() {
             {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
             <button className={`${btn.primary} w-full`} disabled={busy}>{busy ? 'جارٍ الدخول…' : 'دخول'}</button>
             <p className="pt-1 text-center text-xs text-fd-muted">
-              أول مرة؟ <button type="button" className="font-semibold text-fd-orange-solid" onClick={() => setTab('create')}>أنشئ حساباً لفريقك</button>
+              أول مرة؟ <button type="button" className="font-semibold text-fd-orange-solid" onClick={() => { setTab('create'); setError(''); }}>أنشئ حساباً لفريقك</button>
             </p>
+            {error && (
+              <p className="rounded-lg bg-fd-bg px-3 py-2 text-center text-xs text-fd-muted">
+                لا يوجد دخول قبل إنشاء الفريق. إن لم تنشئ فريقك بعد فاختر «إنشاء فريق جديد» بالأعلى.
+              </p>
+            )}
           </form>
         ) : (
           <form onSubmit={create} className="space-y-3">
             {([
               ['teamName', 'اسم الفريق', 'text', 'organization'],
               ['adminName', 'اسم المسؤول عن الفريق', 'text', 'name'],
-              ['password', 'كلمة مرور الفريق', 'password', 'new-password'],
+              ['password', 'كلمة مرور الفريق (8 أحرف على الأقل)', 'password', 'new-password'],
               ['confirm', 'تأكيد كلمة المرور', 'password', 'new-password'],
             ] as const).map(([key, label, type, ac]) => (
               <label key={key} className="block">
                 <span className="mb-1 block text-sm font-medium text-fd-petrol">{label}</span>
-                <input className={input} type={type} autoComplete={ac} required minLength={key.startsWith('p') || key === 'confirm' ? 6 : 2}
+                <input className={input} type={type} autoComplete={ac} required minLength={key.startsWith('p') || key === 'confirm' ? 8 : 2}
                   value={team[key]} onChange={e => setTeam({ ...team, [key]: e.target.value })} />
               </label>
             ))}

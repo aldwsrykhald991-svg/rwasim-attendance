@@ -1,7 +1,7 @@
 // منصة التحضير الميداني — جداول مستقلة تماماً (بادئة Field*)
 // لا تشارك أي جدول مع منصتي الأشبال أو المتوسط والثانوي.
 // كل جدول يحمل teamId ليُقيَّد كل استعلام بالفريق الحالي على مستوى الخادم.
-import { mutate } from '@/lib/db';
+import { batch } from '@/lib/db';
 
 export const ATTENDANCE_STATUSES = ['PRESENT', 'ABSENT', 'NOT_MARKED', 'OTHER'] as const;
 export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
@@ -137,15 +137,21 @@ const STATEMENTS = [
     changedAt TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
   `CREATE INDEX IF NOT EXISTS idx_faudit_project ON FieldAttendanceAuditLog(projectId, changedAt)`,
+
+  // حدّ المحاولات (دخول/إنشاء) — محفوظ في القاعدة لأن ذاكرة الخادم لا تُشارك بين النسخ
+  `CREATE TABLE IF NOT EXISTS FieldRateLimit (
+    key TEXT PRIMARY KEY,
+    n INTEGER NOT NULL DEFAULT 0,
+    until INTEGER NOT NULL
+  )`,
 ];
 
 let ready: Promise<void> | null = null;
 
 export function ensureFieldTables(): Promise<void> {
   if (!ready) {
-    ready = (async () => {
-      for (const sql of STATEMENTS) await mutate(sql);
-    })().catch(err => {
+    // دفعة واحدة بدل عشرات الرحلات إلى القاعدة عند أول طلب
+    ready = batch(STATEMENTS.map(sql => ({ sql }))).catch(err => {
       ready = null;
       throw err;
     });

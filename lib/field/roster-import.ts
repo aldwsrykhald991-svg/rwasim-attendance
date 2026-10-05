@@ -136,10 +136,16 @@ export function summarize(entries: RosterEntry[]) {
 
 /** يقرأ ملف Excel أو CSV أو نص في المتصفح ويحوله إلى صفوف */
 export async function fileToRows(file: File): Promise<string[][]> {
-  if (/\.(txt)$/i.test(file.name) || file.type === 'text/plain') return textToRows(await file.text());
-  const XLSX = await import('xlsx');
-  const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false, defval: '' });
-  return rows.map(r => r.map(cleanCell));
+  if (/\.(txt|csv)$/i.test(file.name) || file.type === 'text/plain' || file.type === 'text/csv') {
+    return textToRows((await file.text()).replace(/^\uFEFF/, ''));
+  }
+  if (!/\.xlsx$/i.test(file.name)) {
+    throw new Error('صيغة الملف غير مدعومة. احفظه بصيغة ‎.xlsx‎ أو ‎.csv‎ ثم أعد المحاولة.');
+  }
+  if (file.size > 5 * 1024 * 1024) throw new Error('حجم الملف أكبر من 5MB.');
+  const { readSheet } = await import('read-excel-file/browser');
+  const rows = await readSheet(file);
+  return rows
+    .map(r => r.map(c => cleanCell(c instanceof Date ? c.toISOString().slice(0, 10) : c)))
+    .filter(r => r.some(Boolean));
 }
