@@ -7,7 +7,7 @@ var SKIP='input,textarea,select,dialog,[role="dialog"],[data-fx="off"]';
 var HOT='a,button,[role="button"],[role="radio"],[role="switch"],summary,select,input,textarea,label';
 var Motion={
  _stop:null,_root:null,
- isOn:function(){return !reduced()&&stored()!=='off';},
+ isOn:function(){return true;}, /* الحركة دائمة بطلب صاحب المنصة: بلا مفتاح إيقاف */
  set:function(on){try{window.localStorage.setItem(MKEY,on?'on':'off');}catch(e){} Motion.init(Motion._root);},
  init:function(root){
   root=root||document; Motion._root=root;

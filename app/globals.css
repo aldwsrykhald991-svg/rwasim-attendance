@@ -81,16 +81,6 @@
 [data-fx="off"] .rw-fx-tilt{transform:none}
 [data-fx="off"] .rw-fx-tilt::after,[data-fx="off"] .rw-fx-glow::before{display:none}
 [data-fx="off"] .rw-fx-reveal{opacity:1;translate:none;transition:none}
-@media (prefers-reduced-motion:reduce){
- .rw-fx-float{animation:none!important}
- .rw-fx-tilt{transform:none!important}
- .rw-fx-tilt::after{display:none}
- .rw-fx-glow::before{animation:none!important}
- .rw-fx-parallax{transform:none!important}
- .rw-fx-reveal{opacity:1!important;translate:none!important;transition:none!important}
- .rw-fx-depth{transition:none;transform:none}
- .rw-cursor{display:none}
-}
 
 /* ===== الهوية الزجاجية: سماء متدرجة ثابتة خلف الصفحات، وبطاقات زجاجية عائمة ===== */
 .gsky{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:linear-gradient(160deg,#e6f1f3 0%,#f0f4f8 45%,#fbeee2 100%)}
@@ -118,4 +108,3 @@ a.gcard:hover,.gcard.group:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.9),v
  .gcard,.gcard-soft,.gcard-tone,.gbar,.gbar-top{background:#fff}
  .gcard-dark,.gheader{background:#0a4f59}
 }
-@media (prefers-reduced-motion:reduce){.gsky span{animation:none!important}}

@@ -2,7 +2,6 @@ import { requireFieldPage } from '@/lib/field/auth';
 import { listMembers } from '@/lib/field/data';
 import RosterManager from '@/components/field/RosterManager';
 import { Card, PageTitle } from '@/components/field/ui';
-import { MotionSwitch } from '@/components/field/FloatingFx';
 
 export default async function TeamPage() {
   const ctx = await requireFieldPage();
@@ -22,7 +21,6 @@ export default async function TeamPage() {
           </div>
         </div>
       </Card>
-      <Card className="mb-4"><MotionSwitch /></Card>
       <RosterManager
         kind="members"
         currentId={ctx.memberId}
