@@ -21,7 +21,6 @@ export function BrandHeading({ sub }: { sub?: string }) {
   return (
     <div className="mb-6 text-center">
       <h1 className="text-3xl font-bold text-fd-petrol">منصة التحضير الميداني</h1>
-      <div className="mt-1 text-sm font-semibold text-fd-orange-dark">بواسطة رواسم</div>
       <p className="mt-1 text-sm text-fd-muted">{sub ?? 'تحضير المشاريع والبرامج في الميدان — ببساطة ووضوح'}</p>
     </div>
   );
