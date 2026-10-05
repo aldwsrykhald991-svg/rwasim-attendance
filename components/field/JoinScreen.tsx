@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { BrandedBackdrop } from './AuthScreen';
-import { PlatformLogo } from './Brand';
 import { fieldApi } from './api';
 import { btn, input } from './ui';
 
@@ -31,15 +30,14 @@ export default function JoinScreen({ state, token, projectName, teamName, names 
   return (
     <BrandedBackdrop>
       <div className="mb-6 text-center">
-        <span className="rw-fx-seal rw-fx-float"><PlatformLogo height={76} /></span>
         {state === 'ok' ? (
           <>
-            <p className="mt-4 text-sm text-fd-muted">تحضير مشروع</p>
+            <p className="text-sm text-fd-muted">تحضير مشروع</p>
             <h1 className="text-2xl font-bold text-fd-petrol">{projectName}</h1>
             <p className="mt-1 text-sm text-fd-muted">{teamName}</p>
           </>
         ) : (
-          <h1 className="mt-4 text-2xl font-bold text-fd-petrol">{state === 'archived' ? projectName : 'الرابط غير صالح'}</h1>
+          <h1 className="text-2xl font-bold text-fd-petrol">{state === 'archived' ? projectName : 'الرابط غير صالح'}</h1>
         )}
       </div>
 

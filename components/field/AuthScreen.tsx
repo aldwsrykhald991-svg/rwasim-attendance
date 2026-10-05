@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { PlatformLogo, FieldFooter } from './Brand';
+import { FieldFooter } from './Brand';
 import { btn, input } from './ui';
 import { fieldApi } from './api';
 
@@ -20,8 +20,7 @@ export function BrandedBackdrop({ children }: { children: React.ReactNode }) {
 export function BrandHeading({ sub }: { sub?: string }) {
   return (
     <div className="mb-6 text-center">
-      <span className="rw-fx-seal rw-fx-float"><PlatformLogo height={88} /></span>
-      <h1 className="mt-4 text-2xl font-bold text-fd-petrol">منصة التحضير الميداني</h1>
+      <h1 className="text-3xl font-bold text-fd-petrol">منصة التحضير الميداني</h1>
       <p className="mt-1 text-sm text-fd-muted">{sub ?? 'تحضير المشاريع والبرامج في الميدان — ببساطة ووضوح'}</p>
     </div>
   );

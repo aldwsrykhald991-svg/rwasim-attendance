@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { PlatformLogo, FieldFooter } from './Brand';
+import { FieldFooter } from './Brand';
 import LogoutButton from './LogoutButton';
 
 const NAV = [
@@ -23,7 +23,6 @@ export default function Shell({ teamName, memberName, scopeProjectId = null, chi
       <header className="gheader sticky top-0 z-30 text-white">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
           <Link href={home} className="flex min-w-0 items-center gap-2.5">
-            <PlatformLogo height={38} variant="light" />
             <div className="min-w-0 leading-tight">
               <div className="truncate font-bold">التحضير الميداني</div>
             </div>
