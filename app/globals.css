@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* هوية رواسم لمنصة التحضير — القيم من نظام التصميم (tokens.json) */
+@theme {
+  --color-fd-petrol: #0a4f59;      /* teal-dark: الهيدر، العناوين، الأزرار الداكنة */
+  --color-fd-petrol-2: #0d6e7a;    /* teal: hover للأساسي */
+  --color-fd-orange: #e07820;      /* orange: الإبراز */
+  --color-fd-orange-solid: #b46019; /* درجة من orange تحقق 4.5:1 مع النص الأبيض: للأزرار والتبويبات والشارات */
+  --color-fd-orange-dark: #9a5115;  /* hover للعنصر الصلب */
+  --color-fd-teal: #0d6e7a;        /* teal: الأيقونات والتفاصيل المساندة */
+  --color-fd-bg: #f0f4f8;
+  --color-fd-line: #e5e7eb;
+  --color-fd-muted: #5f6877;
+  /* لوحة الحالات بقيم ثابتة (الافتراضية في Tailwind 4 زاهية جدًا) */
+  --color-emerald-50: #ecfdf5; --color-emerald-200: #a7f3d0; --color-emerald-500: #10b981; --color-emerald-600: #059669; --color-emerald-700: #047857;
+  --color-red-50: #fef2f2; --color-red-200: #fecaca; --color-red-600: #dc2626; --color-red-700: #b91c1c;
+  --color-amber-50: #fffbeb; --color-amber-200: #fde68a; --color-amber-300: #fcd34d; --color-amber-500: #f59e0b; --color-amber-600: #d97706; --color-amber-700: #b45309; --color-amber-800: #92400e; --color-amber-900: #78350f;
+  --color-slate-50: #f8fafc; --color-slate-100: #f1f5f9; --color-slate-200: #e2e8f0; --color-slate-400: #94a3b8; --color-slate-500: #64748b; --color-slate-600: #475569; --color-slate-700: #334155; --color-slate-800: #1e293b;
+  --font-sans: 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html, body { direction: rtl; }
+  body { font-family: var(--font-sans); background: #f0f4f8; color: #1e293b; }
+  h1, h2 { font-weight: 700; }
+  h3, h4 { font-weight: 600; }
+  input, select, textarea, button { font-family: inherit; }
+}
+
+/* متغيرات نظام التصميم التي تعتمد عليها أصناف الهوية العائمة */
+:root {
+  --surface: #ffffff; --teal: #0d6e7a; --teal-light: #0d9eae; --orange: #e07820; --radius-2xl: 16px;
+  --shadow-depth: 0 1px 2px rgba(30,41,59,0.06), 0 4px 8px rgba(30,41,59,0.06), 0 12px 24px rgba(30,41,59,0.08);
+  --shadow-depth-hover: 0 2px 4px rgba(30,41,59,0.06), 0 8px 16px rgba(30,41,59,0.08), 0 24px 40px rgba(30,41,59,0.12);
+  --shadow-glow-teal: 0 0 0 1px rgba(13,158,174,0.45), 0 0 28px rgba(13,158,174,0.35);
+  --shadow-glow-gold: 0 0 0 1px rgba(224,120,32,0.45), 0 0 28px rgba(224,120,32,0.30);
+}
+/* ===== التصميم العائم (اختياري) — أصناف تُضاف وتُزال، بلا JS تبقى كل العناصر في حالتها النهائية ===== */
+.rw-fx-depth{box-shadow:var(--shadow-depth);transform:translateY(var(--lift,0));transition:box-shadow .35s ease,transform .35s ease}
+.rw-fx-depth:hover{--lift:-4px;box-shadow:var(--shadow-depth-hover)}
+.rw-fx-tilt{position:relative;transform-style:flat;transform:perspective(900px) translateY(var(--lift,0)) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg))}
+.rw-fx-tilt::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;background:radial-gradient(240px circle at var(--gx,50%) var(--gy,50%),rgba(255,255,255,.35),transparent 60%);transition:opacity .35s ease}
+.rw-fx-tilt.is-tilting{transition:transform .08s linear,box-shadow .35s ease}
+.rw-fx-tilt.is-tilting::after{opacity:1}
+.rw-motion .rw-fx-float{animation:rw-float var(--fx-dur,7s) ease-in-out var(--fx-delay,0s) infinite}
+@keyframes rw-float{0%,100%{translate:0 0}50%{translate:0 calc(var(--fx-amp,5px) * -1)}}
+.rw-motion .rw-fx-float:hover,.rw-motion .rw-fx-float:focus-within,.rw-motion .rw-fx-float.is-offscreen{animation-play-state:paused}
+/* الخامة: زجاج مصنفر بتدرّج شفاف وحافة رفيعة تعكس الضوء */
+.rw-fx-glass{background:linear-gradient(135deg,rgba(255,255,255,.80),rgba(255,255,255,.64));border:1px solid rgba(255,255,255,.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.85),var(--shadow-depth);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.rw-fx-glass{background:var(--surface)}}
+.rw-fx-glass.rw-fx-glass-off{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}
+/* الوهج: يظهر عند التفاعل فقط، بلون teal-light أو orange من الهوية */
+.rw-fx-glow{position:relative}
+.rw-fx-glow::before{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;opacity:0;box-shadow:var(--shadow-glow-teal);transition:opacity .35s ease}
+.rw-fx-glow--gold::before{box-shadow:var(--shadow-glow-gold)}
+.rw-fx-glow:hover::before,.rw-fx-glow:focus-within::before{opacity:1}
+.rw-motion .rw-fx-glow:hover::before,.rw-motion .rw-fx-glow:focus-within::before{animation:rw-pulse 2.4s ease-in-out infinite}
+@keyframes rw-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+/* الختم الزجاجي للشعار */
+.rw-fx-seal{display:inline-flex;align-items:center;justify-content:center;padding:6px;border-radius:var(--radius-2xl);background:linear-gradient(135deg,rgba(255,255,255,.92),rgba(255,255,255,.72));border:1px solid rgba(255,255,255,.8);box-shadow:inset 0 1px 0 #fff,var(--shadow-depth);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+/* طبقات الخلفية العائمة (طيف شفاف متدرج) والبارالاكس */
+.rw-fx-aura{position:absolute;border-radius:9999px;pointer-events:none;filter:blur(40px);opacity:.45}
+.rw-fx-aura--teal{background:radial-gradient(circle,var(--teal-light),transparent 70%)}
+.rw-fx-aura--orange{background:radial-gradient(circle,var(--orange),transparent 70%)}
+.rw-fx-aura--deep{background:radial-gradient(circle,var(--teal),transparent 70%)}
+.rw-motion .rw-fx-parallax{transform:translate3d(0,var(--py,0px),0)}
+.rw-motion .rw-fx-reveal{opacity:0;translate:0 16px;transition:opacity .5s ease,translate .5s ease,box-shadow .35s ease,transform .35s ease;transition-delay:var(--fx-stagger,0s)}
+.rw-motion .rw-fx-reveal--soft{translate:0 8px}
+.rw-motion .rw-fx-reveal.is-in{opacity:1;translate:0 0}
+/* المؤشر الزجاجي: هالة تتبع الماوس وتتسع حول الأزرار؛ حلقة بلا تعبئة فوق الأزرار حتى لا يضعف تباين النص */
+.rw-cursor{position:fixed;left:0;top:0;width:40px;height:40px;border-radius:9999px;pointer-events:none;z-index:2147483000;opacity:0;background:radial-gradient(circle,rgba(255,255,255,.35),rgba(13,158,174,.14));border:1px solid rgba(13,158,174,.45);box-shadow:var(--shadow-glow-teal);transition:opacity .25s ease,transform .14s ease-out}
+.rw-cursor.is-on{opacity:1}
+.rw-cursor.is-engulf{background:transparent}
+:root[data-theme="dark"] .rw-fx-depth{box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 0 1px rgba(255,255,255,.08)}
+[data-fx="off"] .rw-fx-float{animation:none}
+[data-fx="off"] .rw-fx-tilt{transform:none}
+[data-fx="off"] .rw-fx-tilt::after,[data-fx="off"] .rw-fx-glow::before{display:none}
+[data-fx="off"] .rw-fx-reveal{opacity:1;translate:none;transition:none}
+@media (prefers-reduced-motion:reduce){
+ .rw-fx-float{animation:none!important}
+ .rw-fx-tilt{transform:none!important}
+ .rw-fx-tilt::after{display:none}
+ .rw-fx-glow::before{animation:none!important}
+ .rw-fx-parallax{transform:none!important}
+ .rw-fx-reveal{opacity:1!important;translate:none!important;transition:none!important}
+ .rw-fx-depth{transition:none;transform:none}
+ .rw-cursor{display:none}
+}
