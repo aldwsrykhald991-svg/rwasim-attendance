@@ -14,6 +14,7 @@ export default async function StudentsPage() {
         kind="students"
         items={students.map(s => ({
           id: Number(s.id), name: s.name, active: Number(s.active),
+          deletable: !Number(s.projects),
           note: Number(s.projects) ? `${s.projects} ${Number(s.projects) === 1 ? 'مشروع' : 'مشاريع'}` : undefined,
         }))}
       />

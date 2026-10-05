@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { requireFieldPage } from '@/lib/field/auth';
 import { getProject, listMembers, listStudents } from '@/lib/field/data';
 import ProjectManager from '@/components/field/ProjectManager';
+import DeleteProjectCard from '@/components/field/DeleteProjectCard';
 import { PageTitle } from '@/components/field/ui';
 
 export default async function ManageProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
@@ -27,6 +28,7 @@ export default async function ManageProjectPage({ params }: { params: Promise<{ 
         students={students.filter(s => Number(s.active)).map(s => ({ id: Number(s.id), name: s.name }))}
         members={members.filter(m => Number(m.active)).map(m => ({ id: Number(m.id), name: m.name }))}
       />
+      <DeleteProjectCard projectId={projectId} name={data.project.name} />
     </div>
   );
 }

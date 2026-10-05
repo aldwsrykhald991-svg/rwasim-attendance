@@ -6,6 +6,7 @@ import { dayOrdinal, formatDay, formatStamp, percent, progressOf } from '@/lib/f
 import { dateRange } from '@/components/field/ProjectCard';
 import ProjectStatusControl from '@/components/field/ProjectStatusControl';
 import ShareLinkCard from '@/components/field/ShareLinkCard';
+import DeleteProjectCard from '@/components/field/DeleteProjectCard';
 import { getProjectLink } from '@/lib/field/link';
 import { btn, Card, Empty, PageTitle, ProgressBadge, ProjectStatusBadge, SectionTitle, Stat } from '@/components/field/ui';
 
@@ -55,6 +56,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
         <Link href={`/field/projects/${project.id}/report`} className={btn.ghost}><i className="fa-solid fa-chart-simple" /> ملخص الحضور</Link>
         <Link href={`/field/projects/${project.id}/log`} className={btn.ghost}><i className="fa-solid fa-clock-rotate-left" /> سجل التعديلات</Link>
         {!archived && !scoped && <Link href={`/field/projects/${project.id}/manage`} className={btn.ghost}><i className="fa-solid fa-sliders" /> إدارة المشروع</Link>}
+        {!archived && !scoped && <Link href={`/field/projects/${project.id}/manage#delete`} className={btn.danger}><i className="fa-solid fa-trash" /> حذف المشروع</Link>}
       </div>
 
       {!scoped && !archived && <ShareLinkCard projectId={project.id} projectName={project.name} token={linkToken} />}
@@ -137,6 +139,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           </div>
         </Card>
       </div>
+      {archived && !scoped && <DeleteProjectCard projectId={project.id} name={project.name} />}
     </div>
   );
 }

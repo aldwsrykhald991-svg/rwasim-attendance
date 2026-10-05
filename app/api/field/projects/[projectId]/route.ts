@@ -270,3 +270,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ pr
 
   return bad('إجراء غير معروف');
 }
+
+/** حذف المشروع نهائياً مع كل ما يتبعه. يتطلب كتابة اسم المشروع للتأكيد. */
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
+  const auth = await requireFieldMember();
+  if (!auth.ok) return auth.res;
+  const { teamId } = auth.ctx;
+  const projectId = Number((await params).projectId);
+  const [project] = await query<{ id: number; name: string }>(
+    `SELECT id, name FROM FieldProject WHERE id = ? AND teamId = ?`, [projectId, teamId]);
+  if (!project) return bad('المشروع غير موجود', 404);
+  const body = await req.json().catch(() => ({})) as Body;
+  if (cleanName(body.confirmName, 100) !== cleanName(project.name, 100)) return bad('اسم المشروع غير مطابق');
+
+  const args = [projectId, teamId];
+  await batch([
+    { sql: `DELETE FROM FieldAttendance WHERE projectId = ? AND teamId = ?`, args },
+    { sql: `DELETE FROM FieldAttendanceAuditLog WHERE projectId = ? AND teamId = ?`, args },
+    { sql: `DELETE FROM FieldProjectParticipant WHERE projectId = ? AND teamId = ?`, args },
+    { sql: `DELETE FROM FieldProjectSupervisor WHERE projectId = ? AND teamId = ?`, args },
+    { sql: `DELETE FROM FieldProjectLink WHERE projectId = ? AND teamId = ?`, args },
+    { sql: `DELETE FROM FieldGroup WHERE projectId = ? AND teamId = ?`, args },
+    { sql: `DELETE FROM FieldProjectDay WHERE projectId = ? AND teamId = ?`, args },
+    { sql: `DELETE FROM FieldProject WHERE id = ? AND teamId = ?`, args },
+  ]);
+  return NextResponse.json({ ok: true });
+}

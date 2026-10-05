@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { fieldApi } from './api';
 import { btn, Card, input } from './ui';
 
-interface Item { id: number; name: string; active: number; note?: string }
+interface Item { id: number; name: string; active: number; note?: string; deletable?: boolean }
 
 export default function RosterManager({ kind, items, currentId }: { kind: 'students' | 'members'; items: Item[]; currentId?: number }) {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function RosterManager({ kind, items, currentId }: { kind: 'stude
   }, [items, search, showInactive]);
   const inactiveCount = items.filter(i => !Number(i.active)).length;
 
-  async function call(url: string, body: unknown, method: 'POST' | 'PATCH', ok: string) {
+  async function call(url: string, body: unknown, method: 'POST' | 'PATCH' | 'DELETE', ok: string) {
     setBusy(true); setMsg(null);
     const r = await fieldApi<{ added?: number; skipped?: number }>(url, body, method);
     setBusy(false);
@@ -100,6 +100,12 @@ export default function RosterManager({ kind, items, currentId }: { kind: 'stude
                         {Number(i.active) ? 'إيقاف' : 'إعادة'}
                       </button>
                     )}
+                    {i.id !== currentId && i.deletable !== false && (
+                      <button className="px-2 text-sm text-red-700" disabled={busy} aria-label={`حذف ${i.name}`} title="حذف نهائي"
+                        onClick={() => { if (confirm(`حذف «${i.name}» نهائياً؟ لا يمكن التراجع.`)) call(`${base}/${i.id}`, {}, 'DELETE', 'تم الحذف'); }}>
+                        <i className="fa-solid fa-trash" />
+                      </button>
+                    )}
                   </>
                 )}
               </li>
@@ -109,7 +115,7 @@ export default function RosterManager({ kind, items, currentId }: { kind: 'stude
       </Card>
       {isStudents && (
         <p className="mt-3 text-xs text-fd-muted">
-          تعديل اسم الطالب أو إيقافه لا يغيّر المشاريع السابقة؛ كل مشروع يحتفظ بالأسماء والمجموعات كما كانت وقت تنفيذه.
+          الحذف النهائي متاح للطالب الذي لم يشارك في أي مشروع؛ من شارك يُوقَف فقط حتى تبقى سجلات حضوره. تعديل اسم الطالب أو إيقافه لا يغيّر المشاريع السابقة؛ كل مشروع يحتفظ بالأسماء والمجموعات كما كانت وقت تنفيذه.
         </p>
       )}
     </div>

@@ -8,7 +8,7 @@ export type ApiResult<T> =
 export async function fieldApi<T = Record<string, unknown>>(
   url: string,
   body?: unknown,
-  method: 'POST' | 'PATCH' | 'GET' = 'POST',
+  method: 'POST' | 'PATCH' | 'GET' | 'DELETE' = 'POST',
 ): Promise<ApiResult<T>> {
   try {
     const res = await fetch(url, {
