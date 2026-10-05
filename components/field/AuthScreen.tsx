@@ -8,10 +8,7 @@ import { fieldApi } from './api';
 
 export function BrandedBackdrop({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-fd-bg">
-      <div aria-hidden className="rw-fx-aura rw-fx-aura--teal rw-fx-parallax -right-24 -top-24 h-80 w-80" data-depth="0.25" />
-      <div aria-hidden className="rw-fx-aura rw-fx-aura--orange rw-fx-parallax -left-20 top-1/2 h-64 w-64" data-depth="-0.2" />
-      <div aria-hidden className="rw-fx-aura rw-fx-aura--deep rw-fx-parallax -bottom-28 right-1/4 h-72 w-72" data-depth="0.15" />
+    <div className="relative flex min-h-screen flex-col">
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-10">{children}</div>
       <div className="relative z-10">
         <FieldFooter />
@@ -65,7 +62,7 @@ export default function AuthScreen() {
     return (
       <BrandedBackdrop>
         <BrandHeading sub="تم إنشاء حساب الفريق بنجاح" />
-        <div className="rw-fx-glass rw-fx-glow w-full max-w-md rounded-3xl p-6 text-center">
+        <div className="gcard rw-fx-float rw-fx-glow w-full max-w-md rounded-3xl p-6 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
             <i className="fa-solid fa-check text-xl" />
           </div>
@@ -84,7 +81,7 @@ export default function AuthScreen() {
   return (
     <BrandedBackdrop>
       <BrandHeading />
-      <div className="rw-fx-glass rw-fx-glow w-full max-w-md rounded-3xl p-5 sm:p-6">
+      <div className="gcard rw-fx-float rw-fx-glow w-full max-w-md rounded-3xl p-5 sm:p-6">
         <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-fd-bg p-1 text-sm">
           {(['login', 'create'] as const).map(t => (
             <button key={t} type="button" onClick={() => { setTab(t); setError(''); }}

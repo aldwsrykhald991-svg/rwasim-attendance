@@ -31,7 +31,7 @@ function Row({ label, sub, c }: { label: string; sub?: string; c: Counts }) {
 
 function Table({ children, first, totalLabel = 'المشاركون' }: { children: React.ReactNode; first: string; totalLabel?: string }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-fd-line bg-white">
+    <div className="gcard rw-fx-float overflow-x-auto rounded-2xl">
       <table className="w-full sm:min-w-[560px] text-sm">
         <thead className="bg-fd-bg text-xs text-fd-muted">
           <tr>
@@ -105,7 +105,7 @@ export default async function ReportPage({ params }: { params: Promise<{ project
       <SectionTitle>تفصيل كل يوم حسب المجموعات</SectionTitle>
       <div className="space-y-2">
         {days.map(d => (
-          <details key={d.id} className="group rounded-2xl border border-fd-line bg-white">
+          <details key={d.id} className="gcard rw-fx-float group rounded-2xl">
             <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-semibold text-fd-petrol">
               <span>{dayLabel(d.index, d.name)} <span className="text-xs font-normal text-fd-muted">• {formatDay(d.date)}</span></span>
               <i className="fa-solid fa-chevron-down text-xs text-fd-muted transition group-open:rotate-180" />

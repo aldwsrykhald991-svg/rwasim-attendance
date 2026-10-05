@@ -44,7 +44,12 @@
 .rw-fx-tilt.is-tilting::after{opacity:1}
 .rw-motion .rw-fx-float{animation:rw-float var(--fx-dur,7s) ease-in-out var(--fx-delay,0s) infinite}
 @keyframes rw-float{0%,100%{translate:0 0}50%{translate:0 calc(var(--fx-amp,5px) * -1)}}
-.rw-motion .rw-fx-float:hover,.rw-motion .rw-fx-float:focus-within,.rw-motion .rw-fx-float.is-offscreen{animation-play-state:paused}
+.rw-motion .rw-fx-float:nth-child(2n){--fx-dur:8.3s;--fx-delay:-2.7s;--fx-amp:4px}
+.rw-motion .rw-fx-float:nth-child(3n){--fx-dur:9.1s;--fx-delay:-5.2s;--fx-amp:6px}
+.rw-motion .rw-fx-float:nth-child(5n){--fx-dur:6.4s;--fx-delay:-1.3s;--fx-amp:3px}
+/* الحركة دائمة؛ تتوقف فقط أثناء الكتابة داخل البطاقة وخارج الشاشة، ولا تتراكب البطاقات المتداخلة */
+.rw-motion .rw-fx-float:focus-within,.rw-motion .rw-fx-float.is-offscreen{animation-play-state:paused}
+.rw-fx-float .rw-fx-float{animation:none}
 /* الخامة: زجاج مصنفر بتدرّج شفاف وحافة رفيعة تعكس الضوء */
 .rw-fx-glass{background:linear-gradient(135deg,rgba(255,255,255,.80),rgba(255,255,255,.64));border:1px solid rgba(255,255,255,.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.85),var(--shadow-depth);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3)}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.rw-fx-glass{background:var(--surface)}}
@@ -86,3 +91,31 @@
  .rw-fx-depth{transition:none;transform:none}
  .rw-cursor{display:none}
 }
+
+/* ===== الهوية الزجاجية: سماء متدرجة ثابتة خلف الصفحات، وبطاقات زجاجية عائمة ===== */
+.gsky{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:linear-gradient(160deg,#e6f1f3 0%,#f0f4f8 45%,#fbeee2 100%)}
+.gsky span{position:absolute;border-radius:9999px;filter:blur(60px);opacity:.5}
+.gsky-a{width:46vmax;height:46vmax;top:-14vmax;inset-inline-end:-12vmax;background:radial-gradient(circle,#0d9eae,transparent 68%)}
+.gsky-b{width:38vmax;height:38vmax;top:38%;inset-inline-start:-14vmax;background:radial-gradient(circle,#e07820,transparent 68%);opacity:.34}
+.gsky-c{width:42vmax;height:42vmax;bottom:-18vmax;inset-inline-end:18%;background:radial-gradient(circle,#0d6e7a,transparent 68%);opacity:.38}
+.rw-motion .gsky-a{animation:gsky-drift 26s ease-in-out infinite}
+.rw-motion .gsky-b{animation:gsky-drift 32s ease-in-out -9s infinite reverse}
+.rw-motion .gsky-c{animation:gsky-drift 29s ease-in-out -17s infinite}
+@keyframes gsky-drift{0%,100%{transform:translate3d(0,0,0) scale(1)}33%{transform:translate3d(-4vmax,3vmax,0) scale(1.08)}66%{transform:translate3d(3vmax,-2vmax,0) scale(.95)}}
+
+.gcard{background:linear-gradient(135deg,rgba(255,255,255,.86),rgba(255,255,255,.66));border:1px solid rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),var(--shadow-depth);-webkit-backdrop-filter:blur(16px) saturate(1.35);backdrop-filter:blur(16px) saturate(1.35);transition:box-shadow .35s ease}
+a.gcard:hover,.gcard.group:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.9),var(--shadow-depth-hover)}
+.gcard-done{border-color:#a7f3d0}
+.gcard-soft{background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.gcard-soft.border-dashed{border-style:dashed;border-color:#cbd5e1}
+/* بطاقة الطالب في شاشة التحضير: زجاج ثابت بلا حركة، وحدّها يحمل لون الحالة */
+.gcard-tone{background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:var(--shadow-depth)}
+.gcard-dark{background:linear-gradient(135deg,rgba(10,79,89,.94),rgba(13,110,122,.86));border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),var(--shadow-depth-hover);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.gheader{background:linear-gradient(180deg,rgba(10,79,89,.96),rgba(10,79,89,.9));border-bottom:1px solid rgba(255,255,255,.14);box-shadow:0 8px 24px rgba(30,41,59,.12);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.gbar{background:rgba(255,255,255,.82);border-top:1px solid rgba(255,255,255,.8);box-shadow:0 -8px 24px rgba(30,41,59,.08);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.gbar-top{background:rgba(255,255,255,.7);border-bottom:1px solid rgba(255,255,255,.8);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+ .gcard,.gcard-soft,.gcard-tone,.gbar,.gbar-top{background:#fff}
+ .gcard-dark,.gheader{background:#0a4f59}
+}
+@media (prefers-reduced-motion:reduce){.gsky span{animation:none!important}}

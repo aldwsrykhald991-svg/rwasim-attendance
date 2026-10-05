@@ -38,7 +38,7 @@ export default function DayGroups({ projectId, dayId, groups }: { projectId: num
           const isOpen = open.has(g.id);
           const left = g.total - g.marked;
           return (
-            <div key={g.id} className={`rounded-2xl border bg-white transition ${prog === 'DONE' ? 'border-emerald-200' : 'border-fd-line'} ${isOpen ? 'shadow-sm' : ''}`}>
+            <div key={g.id} className={`gcard rw-fx-float rounded-2xl ${prog === 'DONE' ? 'gcard-done' : ''}`}>
               <button type="button" onClick={() => toggle(g.id)} aria-expanded={isOpen}
                 className="block w-full p-4 text-right">
                 <div className="flex items-center justify-between gap-2">

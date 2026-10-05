@@ -13,7 +13,7 @@ export const btn = {
 export const input = 'w-full rounded-xl border border-fd-line bg-white px-4 py-3 text-slate-800 outline-none focus:border-fd-teal focus:ring-2 focus:ring-fd-teal/20';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-fd-line bg-white p-4 shadow-[0_1px_2px_rgba(7,59,76,0.04)] sm:p-5 ${className}`}>{children}</div>;
+  return <div className={`gcard rw-fx-float rounded-2xl p-4 sm:p-5 ${className}`}>{children}</div>;
 }
 
 export function PageTitle({ title, sub, back, actions }: { title: string; sub?: ReactNode; back?: { href: string; label: string }; actions?: ReactNode }) {
@@ -81,7 +81,7 @@ export function Bar({ value, total, tone = 'teal' }: { value: number; total: num
 
 export function Stat({ label, value, tone }: { label: string; value: ReactNode; tone?: string }) {
   return (
-    <div className="rounded-xl bg-fd-bg px-3 py-2.5">
+    <div className="gcard-soft rounded-xl px-3 py-2.5">
       <div className="text-xs text-fd-muted">{label}</div>
       <div className={`mt-0.5 text-xl font-bold ${tone ?? 'text-fd-petrol'}`}>{value}</div>
     </div>
@@ -101,7 +101,7 @@ export function AttendanceBadge({ status }: { status: string }) {
 
 export function Empty({ icon, children }: { icon: string; children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-fd-line bg-white/60 px-4 py-8 text-center text-fd-muted">
+    <div className="gcard-soft rounded-2xl border-dashed px-4 py-8 text-center text-fd-muted">
       <i className={`fa-solid ${icon} mb-2 text-2xl text-fd-teal`} />
       <div className="text-sm">{children}</div>
     </div>

@@ -7,5 +7,13 @@ export const metadata: Metadata = {
 };
 
 export default function FieldLayout({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-screen bg-fd-bg text-slate-800">{children}<FloatingFx /></div>;
+  return (
+    <div className="relative min-h-screen text-slate-800">
+      <div aria-hidden className="gsky">
+        <span className="gsky-a" /><span className="gsky-b" /><span className="gsky-c" />
+      </div>
+      <div className="relative z-10">{children}</div>
+      <FloatingFx />
+    </div>
+  );
 }

@@ -58,7 +58,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           const c = counts.byDay(d.id);
           return (
             <Link key={d.id} href={`/field/projects/${project.id}/days/${d.id}`}
-              className="group rounded-2xl border border-fd-line bg-white p-4 transition hover:border-fd-teal hover:shadow-sm">
+              className="gcard rw-fx-float rw-fx-glow group rounded-2xl p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="text-xs font-semibold text-fd-teal">{dayOrdinal(d.index)}</div>

@@ -20,7 +20,7 @@ export default async function AuditLogPage({ params }: { params: Promise<{ proje
       ) : (
         <ol className="space-y-2">
           {log.map(e => (
-            <li key={e.id} className="rounded-2xl border border-fd-line bg-white p-3.5">
+            <li key={e.id} className="gcard rw-fx-float rounded-2xl p-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="font-semibold text-fd-petrol">{e.studentName}</div>
                 <div className="text-xs text-fd-muted">{formatStamp(e.changedAt)}</div>

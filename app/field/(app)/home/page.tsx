@@ -28,7 +28,7 @@ export default async function FieldHome() {
       </div>
 
       {featured && (
-        <div className="rw-fx-depth rw-fx-tilt rw-fx-float rw-fx-glow rw-fx-glow--gold rw-fx-reveal rw-fx-reveal--soft relative rounded-3xl bg-fd-petrol p-5 text-white sm:p-6">
+        <div className="gcard-dark rw-fx-tilt rw-fx-float rw-fx-glow rw-fx-glow--gold relative rounded-3xl p-5 text-white sm:p-6">
           <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
           <div aria-hidden className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full border-[14px] border-fd-orange/30" />
           <div aria-hidden className="pointer-events-none absolute -bottom-14 left-16 h-32 w-32 rounded-full border-[10px] border-fd-teal/25" />
@@ -71,7 +71,7 @@ export default async function FieldHome() {
       )}
 
       <SectionTitle>أرشيف المشاريع</SectionTitle>
-      <Link href="/field/archive" className="flex items-center gap-3 rounded-2xl border border-fd-line bg-white p-4 hover:border-fd-teal">
+      <Link href="/field/archive" className="gcard rw-fx-float rw-fx-glow flex items-center gap-3 rounded-2xl p-4">
         <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-fd-teal/15 text-fd-petrol"><i className="fa-solid fa-box-archive" /></span>
         <div className="flex-1">
           <div className="font-bold text-fd-petrol">{archived.length} مشروع مؤرشف</div>

@@ -17,7 +17,7 @@ export default function Shell({ teamName, memberName, children }: { teamName: st
   const pathname = usePathname();
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-30 bg-fd-petrol text-white shadow-sm">
+      <header className="gheader sticky top-0 z-30 text-white">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
           <Link href="/field/home" className="flex min-w-0 items-center gap-2.5">
             <PlatformLogo height={38} variant="light" />
@@ -56,7 +56,7 @@ export default function Shell({ teamName, memberName, children }: { teamName: st
           <LogoutButton className="mr-auto flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-white/80 hover:bg-white/10" />
         </nav>
       </header>
-      <div className="sm:hidden border-b border-fd-line bg-white px-4 py-1.5 text-xs text-fd-muted">
+      <div className="gbar-top sm:hidden px-4 py-1.5 text-xs text-fd-muted">
         الفريق: <span className="font-semibold text-fd-petrol">{teamName}</span>
       </div>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5">{children}</main>

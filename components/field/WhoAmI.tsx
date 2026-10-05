@@ -29,7 +29,7 @@ export default function WhoAmI({ teamName, members, currentId }: {
   return (
     <BrandedBackdrop>
       <BrandHeading sub={`الفريق: ${teamName}`} />
-      <div className="rw-fx-glass rw-fx-glow w-full max-w-md rounded-3xl p-5 sm:p-6">
+      <div className="gcard rw-fx-float rw-fx-glow w-full max-w-md rounded-3xl p-5 sm:p-6">
         <h2 className="text-xl font-bold text-fd-petrol">من أنت؟</h2>
         <p className="mb-4 mt-1 text-sm text-fd-muted">اختر اسمك ليُسجَّل باسمك كل تحضير أو تعديل تقوم به.</p>
 

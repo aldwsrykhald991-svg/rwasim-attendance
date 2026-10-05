@@ -290,7 +290,7 @@ export default function AttendanceSheet(props: Props) {
           const busy = pending.has(r.studentId);
           const editingOther = otherFor === r.studentId;
           return (
-            <li key={r.studentId} className={`rounded-2xl border-2 bg-white p-3.5 transition ${CARD_TONE[r.status]}`}>
+            <li key={r.studentId} className={`gcard-tone rounded-2xl border-2 p-3.5 transition ${CARD_TONE[r.status]}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-[17px] font-bold leading-snug text-fd-petrol">{r.name}</div>
@@ -361,7 +361,7 @@ export default function AttendanceSheet(props: Props) {
       </ul>
 
       {!readOnly && total > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-fd-line bg-white/95 px-4 py-3 backdrop-blur" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+        <div className="gbar fixed inset-x-0 bottom-0 z-20 px-4 py-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
           <div className="mx-auto flex max-w-5xl items-center gap-3">
             <div className="min-w-0 flex-1">
               <div className="text-xs text-fd-muted">{remaining ? `متبقي ${remaining}` : 'اكتمل التحضير ✓'}</div>

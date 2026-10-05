@@ -11,7 +11,7 @@ export function dateRange(first: string | null, last: string | null): string {
 export default function ProjectCard({ p }: { p: ProjectSummary }) {
   return (
     <Link href={`/field/projects/${p.id}`}
-      className="rw-fx-depth rw-fx-glow rw-fx-reveal rw-fx-reveal--soft group block rounded-2xl border border-fd-line bg-white p-4 hover:border-fd-teal">
+      className="gcard rw-fx-float rw-fx-glow group block rounded-2xl p-4">
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-bold text-fd-petrol group-hover:text-fd-petrol-2">{p.name}</h3>
         <ProjectStatusBadge status={p.status} />
