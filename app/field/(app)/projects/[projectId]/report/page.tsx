@@ -51,7 +51,7 @@ function Table({ children, first, totalLabel = 'المشاركون' }: { childre
 }
 
 export default async function ReportPage({ params }: { params: Promise<{ projectId: string }> }) {
-  const ctx = await requireFieldPage();
+  const ctx = await requireFieldPage(Number((await params).projectId));
   const projectId = Number((await params).projectId);
   const data = await getProject(ctx.teamId, projectId);
   if (!data) notFound();

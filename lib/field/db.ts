@@ -138,6 +138,16 @@ const STATEMENTS = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_faudit_project ON FieldAttendanceAuditLog(projectId, changedAt)`,
 
+  // رابط التحضير السريع: مفتاح واحد لكل مشروع
+  `CREATE TABLE IF NOT EXISTS FieldProjectLink (
+    projectId INTEGER PRIMARY KEY,
+    teamId INTEGER NOT NULL,
+    token TEXT NOT NULL,
+    createdByName TEXT,
+    createdAt TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_flink_token ON FieldProjectLink(token)`,
+
   // حدّ المحاولات (دخول/إنشاء) — محفوظ في القاعدة لأن ذاكرة الخادم لا تُشارك بين النسخ
   `CREATE TABLE IF NOT EXISTS FieldRateLimit (
     key TEXT PRIMARY KEY,

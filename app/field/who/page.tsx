@@ -6,6 +6,7 @@ import WhoAmI from '@/components/field/WhoAmI';
 export default async function WhoPage() {
   const ctx = await getFieldContext();
   if (!ctx) redirect('/field');
+  if (ctx.scopeProjectId) redirect(`/field/projects/${ctx.scopeProjectId}`);
   const members = (await listMembers(ctx.teamId)).filter(m => Number(m.active)).map(m => ({ id: Number(m.id), name: m.name }));
   return <WhoAmI teamName={ctx.teamName} members={members} currentId={ctx.memberId} />;
 }

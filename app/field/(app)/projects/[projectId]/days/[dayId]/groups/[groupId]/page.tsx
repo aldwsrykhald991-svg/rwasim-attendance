@@ -5,7 +5,7 @@ import { dayOrdinal, formatDay } from '@/lib/field/format';
 import AttendanceSheet from '@/components/field/AttendanceSheet';
 
 export default async function GroupAttendancePage({ params }: { params: Promise<{ projectId: string; dayId: string; groupId: string }> }) {
-  const ctx = await requireFieldPage();
+  const ctx = await requireFieldPage(Number((await params).projectId));
   const p = await params;
   const projectId = Number(p.projectId);
   const dayId = Number(p.dayId);

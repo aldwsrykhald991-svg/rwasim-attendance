@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query, mutate, batch } from '@/lib/db';
 import { cleanName, isIsoDate, isProjectStatus } from '@/lib/field/db';
 import { bad, requireFieldMember } from '@/lib/field/auth';
+import { makeLinkToken } from '@/lib/field/link';
 
 type Body = Record<string, unknown>;
 
@@ -41,7 +42,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ pr
     return NextResponse.json({ ok: true });
   }
 
+  // ── رابط التحضير السريع ────────────────────────────────────────────────
+  if (action === 'revokeLink') {
+    await mutate(`DELETE FROM FieldProjectLink WHERE projectId = ? AND teamId = ?`, [projectId, teamId]);
+    return NextResponse.json({ ok: true });
+  }
+
   if (project.status === 'FINISHED') return bad('المشروع مؤرشف؛ أعد فتحه أولاً للتعديل');
+
+  // إنشاء الرابط أو تغييره: التغيير يُبطل الرابط القديم وكل من دخل به
+  if (action === 'createLink') {
+    const token = makeLinkToken();
+    await mutate(
+      `INSERT INTO FieldProjectLink (projectId, teamId, token, createdByName) VALUES (?, ?, ?, ?)
+       ON CONFLICT(projectId) DO UPDATE SET token = excluded.token, createdByName = excluded.createdByName, createdAt = datetime('now')`,
+      [projectId, teamId, token, auth.ctx.memberName]);
+    return NextResponse.json({ ok: true, token });
+  }
 
   // ── الأيام ─────────────────────────────────────────────────────────────
   if (action === 'addDay' || action === 'updateDay') {

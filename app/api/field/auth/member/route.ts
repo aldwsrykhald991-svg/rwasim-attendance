@@ -7,6 +7,7 @@ import { bad, getFieldContext, setFieldCookie, signFieldToken } from '@/lib/fiel
 export async function POST(req: NextRequest) {
   const ctx = await getFieldContext();
   if (!ctx) return bad('يجب تسجيل الدخول', 401);
+  if (ctx.scopeProjectId) return bad('هذا الرابط للتحضير في مشروعه فقط', 403);
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
 
   let memberId: number;

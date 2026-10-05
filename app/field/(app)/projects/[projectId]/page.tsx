@@ -5,10 +5,12 @@ import { getMarkers, getProject, getProjectCounts } from '@/lib/field/data';
 import { dayOrdinal, formatDay, formatStamp, percent, progressOf } from '@/lib/field/format';
 import { dateRange } from '@/components/field/ProjectCard';
 import ProjectStatusControl from '@/components/field/ProjectStatusControl';
+import ShareLinkCard from '@/components/field/ShareLinkCard';
+import { getProjectLink } from '@/lib/field/link';
 import { btn, Card, Empty, PageTitle, ProgressBadge, ProjectStatusBadge, SectionTitle, Stat } from '@/components/field/ui';
 
 export default async function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
-  const ctx = await requireFieldPage();
+  const ctx = await requireFieldPage(Number((await params).projectId));
   const projectId = Number((await params).projectId);
   const data = await getProject(ctx.teamId, projectId);
   if (!data) notFound();
@@ -16,6 +18,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
   const counts = await getProjectCounts(ctx.teamId, projectId, days, groups);
   const markers = await getMarkers(ctx.teamId, projectId);
   const archived = project.status === 'FINISHED';
+  // من دخل برابط التحضير السريع: تحضير واطلاع فقط، بلا إدارة ولا مشاركة للرابط
+  const scoped = !!ctx.scopeProjectId;
+  const linkToken = scoped || archived ? null : await getProjectLink(ctx.teamId, projectId);
 
   // نسبة الحضور العامة: على الأيام التي بدأ تحضيرها فقط
   const started = days.map(d => counts.byDay(d.id)).filter(c => c.marked > 0);
@@ -25,11 +30,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
   return (
     <div>
       <PageTitle
-        back={archived ? { href: '/field/archive', label: 'أرشيف المشاريع' } : { href: '/field/home', label: 'المشاريع' }}
+        back={scoped ? undefined : archived ? { href: '/field/archive', label: 'أرشيف المشاريع' } : { href: '/field/home', label: 'المشاريع' }}
         title={project.name}
         sub={<span className="flex flex-wrap items-center gap-2"><ProjectStatusBadge status={project.status} />
           <span><i className="fa-regular fa-calendar ml-1 text-xs text-fd-teal" />{dateRange(days[0]?.date ?? null, days[days.length - 1]?.date ?? null)}</span></span>}
-        actions={<ProjectStatusControl projectId={project.id} status={project.status} />}
+        actions={scoped ? undefined : <ProjectStatusControl projectId={project.id} status={project.status} />}
       />
 
       {archived && (
@@ -49,8 +54,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
       <div className="mt-4 flex flex-wrap gap-2">
         <Link href={`/field/projects/${project.id}/report`} className={btn.ghost}><i className="fa-solid fa-chart-simple" /> ملخص الحضور</Link>
         <Link href={`/field/projects/${project.id}/log`} className={btn.ghost}><i className="fa-solid fa-clock-rotate-left" /> سجل التعديلات</Link>
-        {!archived && <Link href={`/field/projects/${project.id}/manage`} className={btn.ghost}><i className="fa-solid fa-sliders" /> إدارة المشروع</Link>}
+        {!archived && !scoped && <Link href={`/field/projects/${project.id}/manage`} className={btn.ghost}><i className="fa-solid fa-sliders" /> إدارة المشروع</Link>}
       </div>
+
+      {!scoped && !archived && <ShareLinkCard projectId={project.id} projectName={project.name} token={linkToken} />}
 
       <SectionTitle>أيام المشروع</SectionTitle>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

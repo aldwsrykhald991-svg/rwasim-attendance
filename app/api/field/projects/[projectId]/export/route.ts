@@ -13,10 +13,10 @@ function cell(v: unknown): string {
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ projectId: string }> }) {
-  const auth = await requireFieldMember();
+  const projectId = Number((await params).projectId);
+  const auth = await requireFieldMember(projectId);
   if (!auth.ok) return auth.res;
   const { teamId } = auth.ctx;
-  const projectId = Number((await params).projectId);
   const data = await getProject(teamId, projectId);
   if (!data) return bad('المشروع غير موجود', 404);
 

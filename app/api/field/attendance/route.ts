@@ -6,10 +6,10 @@ import { getGroupSheet } from '@/lib/field/data';
 
 /** قراءة حالة مجموعة في يوم — تُستعمل لمزامنة الشاشة بين أكثر من مشرف */
 export async function GET(req: NextRequest) {
-  const auth = await requireFieldMember();
-  if (!auth.ok) return auth.res;
   const q = req.nextUrl.searchParams;
   const projectId = Number(q.get('projectId'));
+  const auth = await requireFieldMember(projectId);
+  if (!auth.ok) return auth.res;
   const dayId = Number(q.get('dayId'));
   const groupId = Number(q.get('groupId'));
   if (![projectId, dayId, groupId].every(n => Number.isInteger(n) && n > 0)) return bad('طلب غير صحيح');
@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
 
 /** تسجيل/تعديل حالة طالب واحد في يوم من أيام المشروع */
 export async function POST(req: NextRequest) {
-  const auth = await requireFieldMember();
-  if (!auth.ok) return auth.res;
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const projectId = Number(body.projectId);
+  const auth = await requireFieldMember(projectId);
+  if (!auth.ok) return auth.res;
   const dayId = Number(body.dayId);
   const studentId = Number(body.studentId);
   if (![projectId, dayId, studentId].every(n => Number.isInteger(n) && n > 0)) return bad('طلب غير صحيح');

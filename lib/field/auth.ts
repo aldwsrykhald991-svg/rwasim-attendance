@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import { query } from '@/lib/db';
 import { ensureFieldTables } from './db';
+import { linkKey } from './link';
 
 export const FIELD_COOKIE = 'field_session';
 const AUDIENCE = 'field-platform';
@@ -14,6 +15,9 @@ const MAX_AGE = 60 * 60 * 24 * 30; // 30 يوماً
 export interface FieldSession {
   teamId: number;
   memberId: number | null;
+  /** جلسة رابط التحضير السريع: مقيدة بمشروع واحد */
+  projectId?: number | null;
+  linkKey?: string | null;
 }
 
 export interface FieldContext {
@@ -22,6 +26,8 @@ export interface FieldContext {
   teamCode: string;
   memberId: number | null;
   memberName: string | null;
+  /** إن وُجد فالجلسة دخلت برابط التحضير السريع ولا تصل إلا لهذا المشروع */
+  scopeProjectId: number | null;
 }
 
 function secret(): Uint8Array {
@@ -31,7 +37,7 @@ function secret(): Uint8Array {
 }
 
 export async function signFieldToken(session: FieldSession): Promise<string> {
-  return new SignJWT({ teamId: session.teamId, memberId: session.memberId })
+  return new SignJWT({ teamId: session.teamId, memberId: session.memberId, pid: session.projectId ?? null, lk: session.linkKey ?? null })
     .setProtectedHeader({ alg: 'HS256' })
     .setAudience(AUDIENCE)
     .setIssuedAt()
@@ -61,7 +67,12 @@ async function readSession(): Promise<FieldSession | null> {
     const teamId = Number(payload.teamId);
     if (!Number.isInteger(teamId) || teamId <= 0) return null;
     const memberId = payload.memberId == null ? null : Number(payload.memberId);
-    return { teamId, memberId: Number.isInteger(memberId) ? memberId : null };
+    const projectId = payload.pid == null ? null : Number(payload.pid);
+    return {
+      teamId, memberId: Number.isInteger(memberId) ? memberId : null,
+      projectId: Number.isInteger(projectId) ? projectId : null,
+      linkKey: typeof payload.lk === 'string' ? payload.lk : null,
+    };
   } catch {
     return null;
   }
@@ -82,17 +93,32 @@ export const getFieldContext = cache(async (): Promise<FieldContext | null> => {
      WHERE t.id = ?`, [session.memberId ?? 0, session.teamId]);
   if (!team) return null;
   const memberId = team.memberId == null ? null : Number(team.memberId);
-  return { teamId: Number(team.id), teamName: team.name, teamCode: team.code, memberId, memberName: memberId ? team.memberName : null };
+  let scopeProjectId: number | null = null;
+  if (session.projectId) {
+    // جلسة رابط: صالحة فقط ما دام رابط المشروع نفسه قائماً ولم يُغيَّر
+    const [link] = await query<{ token: string }>(
+      `SELECT token FROM FieldProjectLink WHERE projectId = ? AND teamId = ?`, [session.projectId, team.id]);
+    if (!link || !memberId || linkKey(link.token) !== session.linkKey) return null;
+    scopeProjectId = session.projectId;
+  }
+  return { teamId: Number(team.id), teamName: team.name, teamCode: team.code, memberId, memberName: memberId ? team.memberName : null, scopeProjectId };
 });
 
 export type ApiAuth =
   | { ok: true; ctx: FieldContext & { memberId: number; memberName: string } }
   | { ok: false; res: NextResponse };
 
-/** للـ APIs: يتطلب فريقاً مسجلاً + عضواً محدداً (من أنت؟) */
-export async function requireFieldMember(): Promise<ApiAuth> {
+/**
+ * للـ APIs: يتطلب فريقاً مسجلاً + عضواً محدداً (من أنت؟).
+ * جلسة رابط التحضير السريع تُقبل فقط إذا مرّر المسار رقم مشروعها نفسه؛
+ * وكل مسار لا يمرّر projectId (إدارة، طلاب، أعضاء…) مغلق أمامها.
+ */
+export async function requireFieldMember(projectId?: number): Promise<ApiAuth> {
   const ctx = await getFieldContext();
   if (!ctx) return { ok: false, res: NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 }) };
+  if (ctx.scopeProjectId && ctx.scopeProjectId !== projectId) {
+    return { ok: false, res: NextResponse.json({ error: 'هذا الرابط للتحضير في مشروعه فقط' }, { status: 403 }) };
+  }
   if (!ctx.memberId || !ctx.memberName) {
     return { ok: false, res: NextResponse.json({ error: 'اختر اسمك أولاً' }, { status: 403 }) };
   }
@@ -104,7 +130,17 @@ export function bad(message: string, status = 400) {
 }
 
 /** لصفحات المنصة: يتطلب فريقاً + عضواً محدداً، وإلا يعيد التوجيه */
-export async function requireFieldPage(): Promise<FieldContext & { memberId: number; memberName: string }> {
+export async function requireFieldPage(projectId?: number): Promise<FieldContext & { memberId: number; memberName: string }> {
+  const ctx = await getFieldContext();
+  if (!ctx) redirect('/field');
+  if (!ctx.memberId || !ctx.memberName) redirect('/field/who');
+  // جلسة الرابط لا ترى إلا صفحات مشروعها
+  if (ctx.scopeProjectId && ctx.scopeProjectId !== projectId) redirect(`/field/projects/${ctx.scopeProjectId}`);
+  return { ...ctx, memberId: ctx.memberId, memberName: ctx.memberName };
+}
+
+/** للهيكل العام (الهيدر): يقبل الجلسة الكاملة وجلسة الرابط */
+export async function requireFieldShell(): Promise<FieldContext & { memberId: number; memberName: string }> {
   const ctx = await getFieldContext();
   if (!ctx) redirect('/field');
   if (!ctx.memberId || !ctx.memberName) redirect('/field/who');

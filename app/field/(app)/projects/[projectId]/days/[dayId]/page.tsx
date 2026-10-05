@@ -6,7 +6,7 @@ import DayGroups from '@/components/field/DayGroups';
 import { Empty, PageTitle, Stat } from '@/components/field/ui';
 
 export default async function DayPage({ params }: { params: Promise<{ projectId: string; dayId: string }> }) {
-  const ctx = await requireFieldPage();
+  const ctx = await requireFieldPage(Number((await params).projectId));
   const p = await params;
   const projectId = Number(p.projectId);
   const dayId = Number(p.dayId);

@@ -8,11 +8,11 @@ import { applyChanges } from '@/lib/field/attendance';
  * الحالات المحددة مسبقاً (غائب / أخرى) لا تُمس حتى لا تضيع أسباب مكتوبة.
  */
 export async function POST(req: NextRequest) {
-  const auth = await requireFieldMember();
-  if (!auth.ok) return auth.res;
-  const { teamId } = auth.ctx;
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const projectId = Number(body.projectId);
+  const auth = await requireFieldMember(projectId);
+  if (!auth.ok) return auth.res;
+  const { teamId } = auth.ctx;
   const dayId = Number(body.dayId);
   const groupId = Number(body.groupId);
 

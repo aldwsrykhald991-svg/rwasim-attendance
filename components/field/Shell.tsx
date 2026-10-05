@@ -13,13 +13,16 @@ const NAV = [
   { href: '/field/team', label: 'الفريق', icon: 'fa-users' },
 ];
 
-export default function Shell({ teamName, memberName, children }: { teamName: string; memberName: string; children: ReactNode }) {
+export default function Shell({ teamName, memberName, scopeProjectId = null, children }: { teamName: string; memberName: string; scopeProjectId?: number | null; children: ReactNode }) {
+  // من دخل برابط التحضير السريع يرى مشروعه فقط
+  const home = scopeProjectId ? `/field/projects/${scopeProjectId}` : '/field/home';
+  const nav = scopeProjectId ? [{ href: home, label: 'المشروع', icon: 'fa-clipboard-check' }] : NAV;
   const pathname = usePathname();
   return (
     <div className="flex min-h-screen flex-col">
       <header className="gheader sticky top-0 z-30 text-white">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
-          <Link href="/field/home" className="flex min-w-0 items-center gap-2.5">
+          <Link href={home} className="flex min-w-0 items-center gap-2.5">
             <PlatformLogo height={38} variant="light" />
             <div className="min-w-0 leading-tight">
               <div className="truncate font-bold">التحضير الميداني</div>
@@ -30,6 +33,12 @@ export default function Shell({ teamName, memberName, children }: { teamName: st
               <div className="truncate text-[11px] text-white/80">الفريق الحالي</div>
               <div className="truncate text-sm font-semibold">{teamName}</div>
             </div>
+{scopeProjectId ? (
+              <span className="flex max-w-[9.5rem] items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm">
+                <i className="fa-solid fa-user text-xs text-fd-orange" />
+                <span className="truncate">{memberName}</span>
+              </span>
+            ) : (
             <Link
               href="/field/who"
               title="تبديل المستخدم"
@@ -38,11 +47,12 @@ export default function Shell({ teamName, memberName, children }: { teamName: st
               <i className="fa-solid fa-user text-xs text-fd-orange" />
               <span className="truncate">{memberName}</span>
             </Link>
+            )}
           </div>
         </div>
         <nav className="mx-auto flex max-w-5xl items-center gap-1 overflow-x-auto px-3 pb-2 text-sm">
-          {NAV.map(n => {
-            const active = pathname === n.href || (n.href === '/field/home' && pathname.startsWith('/field/projects'));
+          {nav.map(n => {
+            const active = pathname === n.href || ((n.href === '/field/home' || !!scopeProjectId) && pathname.startsWith('/field/projects'));
             return (
               <Link
                 key={n.href}

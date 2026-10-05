@@ -5,7 +5,7 @@ import { formatStamp } from '@/lib/field/format';
 import { AttendanceBadge, Empty, PageTitle } from '@/components/field/ui';
 
 export default async function AuditLogPage({ params }: { params: Promise<{ projectId: string }> }) {
-  const ctx = await requireFieldPage();
+  const ctx = await requireFieldPage(Number((await params).projectId));
   const projectId = Number((await params).projectId);
   const data = await getProject(ctx.teamId, projectId);
   if (!data) notFound();
