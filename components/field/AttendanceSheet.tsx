@@ -324,7 +324,7 @@ export default function AttendanceSheet(props: Props) {
                       const on = r.status === c.status || (editingOther && c.status === 'OTHER');
                       return (
                         <button key={c.status} type="button" role="radio" aria-checked={on} onClick={() => tap(r, c.status)}
-                          className={`flex h-12 items-center justify-center gap-1.5 rounded-xl border-2 text-[15px] font-bold transition ${on ? c.on : 'border-fd-line bg-white text-slate-600 active:bg-slate-50'}`}>
+                          className={`flex h-12 items-center justify-center gap-1.5 rounded-xl border-2 text-[15px] font-bold transition ${on ? `${c.on} gpop` : 'border-fd-line bg-white text-slate-600 active:bg-slate-50'}`}>
                           <i className={`fa-solid ${c.icon} text-sm`} /> {c.label}
                         </button>
                       );
@@ -366,7 +366,7 @@ export default function AttendanceSheet(props: Props) {
             <div className="min-w-0 flex-1">
               <div className="text-xs text-fd-muted">{remaining ? `متبقي ${remaining}` : 'اكتمل التحضير ✓'}</div>
               <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
-                <div className={`h-full rounded-full ${remaining ? 'bg-fd-orange' : 'bg-emerald-500'}`} style={{ width: `${total ? (marked / total) * 100 : 0}%` }} />
+                <div className={`gbarfill h-full rounded-full transition-all duration-500 ${remaining ? 'bg-fd-orange' : 'bg-emerald-500'}`} style={{ width: `${total ? (marked / total) * 100 : 0}%` }} />
               </div>
             </div>
             <button type="button" className={`${btn.dark} py-3`} disabled={remaining === 0} onClick={() => setConfirmAll(true)}>

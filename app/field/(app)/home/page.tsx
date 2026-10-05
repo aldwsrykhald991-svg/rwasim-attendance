@@ -30,8 +30,9 @@ export default async function FieldHome() {
       {featured && (
         <div className="gcard-dark rw-fx-tilt rw-fx-float rw-fx-glow rw-fx-glow--gold relative rounded-3xl p-5 text-white sm:p-6">
           <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
-          <div aria-hidden className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full border-[14px] border-fd-orange/30" />
-          <div aria-hidden className="pointer-events-none absolute -bottom-14 left-16 h-32 w-32 rounded-full border-[10px] border-fd-teal/25" />
+          <span className="gsheen" />
+          <div aria-hidden className="gring-a pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full border-[14px] border-fd-orange/40" />
+          <div aria-hidden className="gring-b pointer-events-none absolute -bottom-14 left-16 h-32 w-32 rounded-full border-[10px] border-white/15" />
           </div>
           <div className="relative">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-fd-orange-solid px-3 py-1 text-xs font-bold text-white">
@@ -48,7 +49,7 @@ export default async function FieldHome() {
             )}
             <Link
               href={featured.todayDay ? `/field/projects/${featured.id}/days/${featured.todayDay.id}` : `/field/projects/${featured.id}`}
-              className={`${btn.primary} mt-5 w-full sm:w-auto`}
+              className={`${btn.primary} gpulse mt-5 w-full sm:w-auto`}
             >
               <i className="fa-solid fa-clipboard-check" /> {featured.todayDay ? 'بدء التحضير' : 'دخول للتحضير'}
             </Link>

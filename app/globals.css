@@ -42,12 +42,14 @@
 .rw-fx-tilt::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;background:radial-gradient(240px circle at var(--gx,50%) var(--gy,50%),rgba(255,255,255,.35),transparent 60%);transition:opacity .35s ease}
 .rw-fx-tilt.is-tilting{transition:transform .08s linear,box-shadow .35s ease}
 .rw-fx-tilt.is-tilting::after{opacity:1}
-.rw-motion .rw-fx-float{animation:rw-float var(--fx-dur,7s) ease-in-out var(--fx-delay,0s) infinite}
-@keyframes rw-float{0%,100%{translate:0 0}50%{translate:0 calc(var(--fx-amp,5px) * -1)}}
-.rw-motion .rw-fx-float:nth-child(2n){--fx-dur:8.3s;--fx-delay:-2.7s;--fx-amp:4px}
-.rw-motion .rw-fx-float:nth-child(3n){--fx-dur:9.1s;--fx-delay:-5.2s;--fx-amp:6px}
-.rw-motion .rw-fx-float:nth-child(5n){--fx-dur:6.4s;--fx-delay:-1.3s;--fx-amp:3px}
-/* الحركة دائمة؛ تتوقف فقط أثناء الكتابة داخل البطاقة وخارج الشاشة، ولا تتراكب البطاقات المتداخلة */
+/* الطفو: موجة واضحة (ارتفاع + تمايل خفيف)، ودخول متدرّج عند فتح الصفحة */
+.rw-motion .rw-fx-float{animation:rw-enter .7s cubic-bezier(.2,.8,.2,1) var(--fx-enter,0s) both,rw-float var(--fx-dur,5.2s) ease-in-out var(--fx-delay,0s) infinite;will-change:translate,rotate}
+@keyframes rw-float{0%,100%{translate:0 0;rotate:0deg}25%{translate:calc(var(--fx-amp,11px) * .18) calc(var(--fx-amp,11px) * -.6);rotate:var(--fx-rot,0deg)}50%{translate:0 calc(var(--fx-amp,11px) * -1);rotate:0deg}75%{translate:calc(var(--fx-amp,11px) * -.18) calc(var(--fx-amp,11px) * -.6);rotate:calc(var(--fx-rot,0deg) * -1)}}
+@keyframes rw-enter{from{opacity:0;scale:.94}to{opacity:1;scale:1}}
+.rw-motion .rw-fx-float:nth-child(2n){--fx-delay:-.65s;--fx-rot:.7deg}
+.rw-motion .rw-fx-float:nth-child(3n){--fx-delay:-1.3s;--fx-rot:-.7deg}
+.rw-motion .rw-fx-float:nth-child(4n){--fx-delay:-1.95s}
+/* الحركة دائمة؛ تتوقف فقط أثناء الكتابة داخل البطاقة وخارج الشاشة */
 .rw-motion .rw-fx-float:focus-within,.rw-motion .rw-fx-float.is-offscreen{animation-play-state:paused}
 .rw-fx-float .rw-fx-float{animation:none}
 /* الخامة: زجاج مصنفر بتدرّج شفاف وحافة رفيعة تعكس الضوء */
@@ -84,14 +86,37 @@
 
 /* ===== الهوية الزجاجية: سماء متدرجة ثابتة خلف الصفحات، وبطاقات زجاجية عائمة ===== */
 .gsky{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:linear-gradient(160deg,#e6f1f3 0%,#f0f4f8 45%,#fbeee2 100%)}
-.gsky span{position:absolute;border-radius:9999px;filter:blur(60px);opacity:.5}
-.gsky-a{width:46vmax;height:46vmax;top:-14vmax;inset-inline-end:-12vmax;background:radial-gradient(circle,#0d9eae,transparent 68%)}
-.gsky-b{width:38vmax;height:38vmax;top:38%;inset-inline-start:-14vmax;background:radial-gradient(circle,#e07820,transparent 68%);opacity:.34}
-.gsky-c{width:42vmax;height:42vmax;bottom:-18vmax;inset-inline-end:18%;background:radial-gradient(circle,#0d6e7a,transparent 68%);opacity:.38}
-.rw-motion .gsky-a{animation:gsky-drift 26s ease-in-out infinite}
-.rw-motion .gsky-b{animation:gsky-drift 32s ease-in-out -9s infinite reverse}
-.rw-motion .gsky-c{animation:gsky-drift 29s ease-in-out -17s infinite}
-@keyframes gsky-drift{0%,100%{transform:translate3d(0,0,0) scale(1)}33%{transform:translate3d(-4vmax,3vmax,0) scale(1.08)}66%{transform:translate3d(3vmax,-2vmax,0) scale(.95)}}
+/* سماء فلكية فاتحة: سُدم ملوّنة تدور في مدارات، ومدارات رفيعة عليها كواكب، ونجوم تومض */
+.gneb{position:absolute;top:50%;left:50%;border-radius:9999px;filter:blur(64px);will-change:transform}
+.gneb-1{width:44vmax;height:44vmax;margin:-22vmax;background:radial-gradient(circle,#0d9eae,transparent 66%);opacity:.5;--r:30vmax;transform:rotate(20deg) translateX(var(--r))}
+.gneb-2{width:34vmax;height:34vmax;margin:-17vmax;background:radial-gradient(circle,#e07820,transparent 66%);opacity:.36;--r:36vmax;transform:rotate(150deg) translateX(var(--r))}
+.gneb-3{width:40vmax;height:40vmax;margin:-20vmax;background:radial-gradient(circle,#0d6e7a,transparent 66%);opacity:.36;--r:24vmax;transform:rotate(260deg) translateX(var(--r))}
+.gneb-4{width:24vmax;height:24vmax;margin:-12vmax;background:radial-gradient(circle,#f59e0b,transparent 66%);opacity:.26;--r:14vmax;transform:rotate(80deg) translateX(var(--r))}
+.rw-motion .gneb-1{animation:gorbit-a 38s linear infinite}
+.rw-motion .gneb-2{animation:gorbit-b 30s linear infinite reverse}
+.rw-motion .gneb-3{animation:gorbit-c 24s linear infinite}
+.rw-motion .gneb-4{animation:gorbit-d 17s linear infinite reverse}
+@keyframes gorbit-a{from{transform:rotate(20deg) translateX(var(--r)) scale(1)}50%{transform:rotate(200deg) translateX(var(--r)) scale(1.2)}to{transform:rotate(380deg) translateX(var(--r)) scale(1)}}
+@keyframes gorbit-b{from{transform:rotate(150deg) translateX(var(--r)) scale(1)}50%{transform:rotate(330deg) translateX(var(--r)) scale(.82)}to{transform:rotate(510deg) translateX(var(--r)) scale(1)}}
+@keyframes gorbit-c{from{transform:rotate(260deg) translateX(var(--r)) scale(1)}50%{transform:rotate(440deg) translateX(var(--r)) scale(1.15)}to{transform:rotate(620deg) translateX(var(--r)) scale(1)}}
+@keyframes gorbit-d{from{transform:rotate(80deg) translateX(var(--r)) scale(1)}50%{transform:rotate(260deg) translateX(var(--r)) scale(1.3)}to{transform:rotate(440deg) translateX(var(--r)) scale(1)}}
+.gorbit{position:absolute;top:50%;left:50%;border-radius:9999px;border:1px solid rgba(13,110,122,.16)}
+.gorbit em{position:absolute;top:50%;left:-5px;width:10px;height:10px;margin-top:-5px;border-radius:9999px}
+.gorbit-1{width:62vmax;height:62vmax;margin:-31vmax;transform:rotate(0deg)}
+.gorbit-1 em{background:#0d9eae;box-shadow:0 0 14px 3px rgba(13,158,174,.55)}
+.gorbit-2{width:92vmax;height:92vmax;margin:-46vmax;border-color:rgba(224,120,32,.16);transform:rotate(120deg)}
+.gorbit-2 em{width:14px;height:14px;left:-7px;margin-top:-7px;background:#e07820;box-shadow:0 0 16px 4px rgba(224,120,32,.5)}
+.gorbit-3{width:128vmax;height:128vmax;margin:-64vmax;transform:rotate(240deg)}
+.gorbit-3 em{width:8px;height:8px;left:-4px;margin-top:-4px;background:#0a4f59;box-shadow:0 0 12px 3px rgba(10,79,89,.45)}
+.rw-motion .gorbit-1{animation:gspin 22s linear infinite}
+.rw-motion .gorbit-2{animation:gspin 34s linear infinite reverse}
+.rw-motion .gorbit-3{animation:gspin 48s linear infinite}
+@keyframes gspin{to{rotate:360deg}}
+.gstar{position:absolute;width:4px;height:4px;border-radius:9999px;background:#0d6e7a;opacity:.25}
+.gstar:nth-child(3n){background:#e07820}
+.gstar:nth-child(4n){width:6px;height:6px}
+.rw-motion .gstar{animation:gtwinkle 3.6s ease-in-out infinite}
+@keyframes gtwinkle{0%,100%{opacity:.12;scale:.6}50%{opacity:.7;scale:1.5}}
 
 .gcard{background:linear-gradient(135deg,rgba(255,255,255,.86),rgba(255,255,255,.66));border:1px solid rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),var(--shadow-depth);-webkit-backdrop-filter:blur(16px) saturate(1.35);backdrop-filter:blur(16px) saturate(1.35);transition:box-shadow .35s ease}
 a.gcard:hover,.gcard.group:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.9),var(--shadow-depth-hover)}
@@ -108,3 +133,28 @@ a.gcard:hover,.gcard.group:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.9),v
  .gcard,.gcard-soft,.gcard-tone,.gbar,.gbar-top{background:#fff}
  .gcard-dark,.gheader{background:#0a4f59}
 }
+
+/* ===== حركة أوضح وأكثر جاذبية ===== */
+/* رفع البطاقة عند المرور، وانضغاطها عند اللمس */
+a.gcard,.gcard.group{transition:box-shadow .35s ease,scale .25s cubic-bezier(.2,.8,.2,1)}
+@media (hover:hover){a.gcard:hover,.gcard.group:hover{scale:1.025}}
+a.gcard:active,.gcard.group:active{scale:.975}
+/* بطاقة «اليوم لديك مشروع»: لمعة تعبرها، وحلقات تدور، وزر ينبض */
+.gsheen{position:absolute;top:-20%;bottom:-20%;width:38%;inset-inline-start:0;background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);transform:translateX(-160%) skewX(-18deg);pointer-events:none}
+.rw-motion .gsheen{animation:gsheen 4.2s ease-in-out infinite}
+@keyframes gsheen{0%,55%{transform:translateX(160%) skewX(-18deg)}100%{transform:translateX(-420%) skewX(-18deg)}}
+.rw-motion .gring-a{animation:gring 9s linear infinite}
+.rw-motion .gring-b{animation:gring 12s linear infinite reverse}
+@keyframes gring{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.18)}100%{transform:rotate(360deg) scale(1)}}
+.gring-a,.gring-b{border-top-color:transparent!important}
+.rw-motion .gpulse{animation:gpulse 2.2s ease-in-out infinite}
+@keyframes gpulse{0%,100%{box-shadow:0 0 0 0 rgba(224,120,32,.55)}50%{box-shadow:0 0 0 12px rgba(224,120,32,0)}}
+/* الشعار في شاشة الدخول يطفو ويتمايل */
+.rw-motion .rw-fx-seal.rw-fx-float{--fx-amp:12px;--fx-rot:2deg}
+/* تأكيد اللمس في شاشة التحضير: الزر المختار «ينبض» مرة واحدة دون أن يتحرك من مكانه */
+.gpop{animation:gpop .32s cubic-bezier(.3,1.6,.5,1)}
+@keyframes gpop{0%{scale:.9}60%{scale:1.07}100%{scale:1}}
+/* شريط التقدم: لمعة متحركة داخل الجزء الممتلئ */
+.gbarfill{position:relative;overflow:hidden}
+.rw-motion .gbarfill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(100%);animation:gbarfill 2s ease-in-out infinite}
+@keyframes gbarfill{to{transform:translateX(-100%)}}

@@ -74,7 +74,7 @@ export function Bar({ value, total, tone = 'teal' }: { value: number; total: num
   const color = tone === 'green' ? 'bg-emerald-500' : tone === 'orange' ? 'bg-fd-orange' : 'bg-fd-teal';
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-      <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+      <div className={`gbarfill h-full rounded-full ${color} transition-all duration-700`} style={{ width: `${pct}%` }} />
     </div>
   );
 }
