@@ -25,6 +25,7 @@ export default function Shell({ teamName, memberName, scopeProjectId = null, chi
           <Link href={home} className="flex min-w-0 items-center gap-2.5">
             <div className="min-w-0 leading-tight">
               <div className="truncate font-bold">التحضير الميداني</div>
+              <div className="truncate text-[11px] text-white/80">بواسطة رواسم</div>
             </div>
           </Link>
           <div className="mr-auto flex min-w-0 items-center gap-2">
