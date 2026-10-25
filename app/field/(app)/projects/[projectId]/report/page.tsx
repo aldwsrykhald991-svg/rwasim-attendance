@@ -60,9 +60,11 @@ export default async function ReportPage({ params }: { params: Promise<{ project
     getProjectCounts(ctx.teamId, projectId, days, groups),
     getOtherCases(ctx.teamId, projectId),
   ]);
-  // الإجمالي ونسب المجموعات تُحسب على الأيام التي بدأ تحضيرها فقط
-  const started = days.filter(d => counts.byDay(d.id).marked > 0);
-  const overall = sum(started.map(d => counts.byDay(d.id)));
+  const rounds = days.flatMap(day => counts.checkpoints(day.id).map(checkpoint => ({
+    day, checkpoint, c: counts.byDay(day.id, checkpoint.id),
+  })));
+  const started = rounds.filter(r => r.c.marked > 0);
+  const overall = sum(started.map(r => r.c));
   const dayById = new Map(days.map(d => [d.id, d]));
 
   return (
@@ -79,30 +81,30 @@ export default async function ReportPage({ params }: { params: Promise<{ project
       <SectionTitle>الإجمالي للمشروع</SectionTitle>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Stat label="عدد المشاركين" value={participants.length} />
-        <Stat label="الحاضرون" value={overall.present} tone="text-emerald-700" />
-        <Stat label="الغائبون" value={overall.absent} tone="text-red-700" />
+        <Stat label="سجلات الحضور" value={overall.present} tone="text-emerald-700" />
+        <Stat label="سجلات الغياب" value={overall.absent} tone="text-red-700" />
         <Stat label="حالات «أخرى»" value={overall.other} tone="text-amber-700" />
         <Stat label="لم يتم تحضيرهم" value={overall.notMarked} tone="text-slate-600" />
         <Stat label="نسبة الحضور" value={overall.marked ? `${percent(overall.present, overall.total)}%` : '—'} tone="text-fd-orange-dark" />
       </div>
       <p className="mt-2 text-xs text-fd-muted">
-        الإجمالي محسوب على {started.length} من {days.length} {days.length === 1 ? 'يوم' : 'أيام'} بدأ تحضيرها. نسبة الحضور = الحاضرون ÷ المشاركين في تلك الأيام.
+        الإجمالي محسوب على {started.length} من {rounds.length} محطة بدأ تحضيرها. الطالب يُحسب مرة في كل محطة، وعدد المشاركين يعرض الطلاب دون تكرار.
       </p>
 
       <SectionTitle>حسب اليوم</SectionTitle>
-      <Table first="اليوم">
-        {days.map(d => <Row key={d.id} label={dayLabel(d.index, d.name)} sub={formatDay(d.date)} c={counts.byDay(d.id)} />)}
+      <Table first="اليوم" totalLabel="سجلات متوقعة">
+        {days.map(d => <Row key={d.id} label={dayLabel(d.index, d.name)} sub={formatDay(d.date)} c={sum(rounds.filter(r => r.day.id === d.id).map(r => r.c))} />)}
       </Table>
 
       <SectionTitle>حسب المجموعة</SectionTitle>
       {groups.length ? (
         <Table first="المجموعة" totalLabel="سجلات متوقعة">
-          {groups.map(g => <Row key={g.id} label={g.name} c={sum(started.map(d => counts.cell(d.id, g.id)))} />)}
+          {groups.map(g => <Row key={g.id} label={g.name} c={sum(started.map(r => counts.cell(r.day.id, g.id, r.checkpoint.id)))} />)}
         </Table>
       ) : <Empty icon="fa-layer-group">لا توجد مجموعات</Empty>}
-      <p className="mt-2 text-xs text-fd-muted">سجلات متوقعة = عدد طلاب المجموعة × الأيام التي بدأ تحضيرها.</p>
+      <p className="mt-2 text-xs text-fd-muted">سجلات متوقعة = عدد طلاب المجموعة × محطات التحضير التي بدأ تحضيرها.</p>
 
-      <SectionTitle>تفصيل كل يوم حسب المجموعات</SectionTitle>
+      <SectionTitle>سجل محطات التحضير حسب اليوم</SectionTitle>
       <div className="space-y-2">
         {days.map(d => (
           <details key={d.id} className="gcard rw-fx-float group rounded-2xl">
@@ -111,9 +113,15 @@ export default async function ReportPage({ params }: { params: Promise<{ project
               <i className="fa-solid fa-chevron-down text-xs text-fd-muted transition group-open:rotate-180" />
             </summary>
             <div className="px-2 pb-2">
-              <Table first="المجموعة">
-                {groups.map(g => <Row key={g.id} label={g.name} c={counts.cell(d.id, g.id)} />)}
-              </Table>
+              {counts.checkpoints(d.id).map(checkpoint => (
+                <div key={checkpoint.id} className="mb-3">
+                  <h3 className="px-2 py-3 font-bold text-fd-petrol">{checkpoint.name}</h3>
+                  {checkpoint.createdAt && <p className="mb-2 px-2 text-xs text-fd-muted">{checkpoint.createdByName} • {formatStamp(checkpoint.createdAt)}</p>}
+                  <Table first="المجموعة">
+                    {groups.map(g => <Row key={g.id} label={g.name} c={counts.cell(d.id, g.id, checkpoint.id)} />)}
+                  </Table>
+                </div>
+              ))}
             </div>
           </details>
         ))}
@@ -128,7 +136,7 @@ export default async function ReportPage({ params }: { params: Promise<{ project
               <Card key={i} className="!p-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-semibold text-fd-petrol">{o.studentName} <span className="text-xs font-normal text-fd-muted">• {o.groupName}</span></div>
-                  <div className="text-xs text-fd-muted">{d ? dayLabel(d.index, d.name) : ''}</div>
+                  <div className="text-xs text-fd-muted">{d ? dayLabel(d.index, d.name) : ''} • {o.checkpointName}</div>
                 </div>
                 <div className="mt-1.5 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{o.otherReason}</div>
                 <div className="mt-1 text-[11px] text-fd-muted">{o.byName} • {formatStamp(o.at)}</div>
