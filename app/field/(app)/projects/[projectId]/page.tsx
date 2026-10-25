@@ -49,7 +49,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
         <Stat label="عدد الأيام" value={days.length} />
         <Stat label="عدد الطلاب" value={participants.length} />
         <Stat label="عدد المجموعات" value={groups.length} />
-        <Stat label="نسبة الحضور العامة" value={expected ? `${percent(presentSum, expected)}%` : '—'} tone="text-fd-orange-dark" />
+        <Stat label="الحضور بآخر محطة لكل يوم" value={expected ? `${percent(presentSum, expected)}%` : '—'} tone="text-fd-orange-dark" />
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -62,6 +62,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
       {!scoped && !archived && <ShareLinkCard projectId={project.id} projectName={project.name} token={linkToken} />}
 
       <SectionTitle>أيام المشروع</SectionTitle>
+      <p className="mb-3 text-xs text-fd-muted">حالة كل يوم تعرض آخر محطة تحضير. افتح اليوم لاستعراض المحطات السابقة أو بدء محطة جديدة.</p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {days.map(d => {
           const c = counts.byDay(d.id);
