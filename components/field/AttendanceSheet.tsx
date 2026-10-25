@@ -8,6 +8,7 @@ import type { AttendanceStatus } from '@/lib/field/db';
 import { formatStamp, STATUS_LABEL } from '@/lib/field/format';
 import { fieldApi } from './api';
 import { AttendanceBadge, btn } from './ui';
+import CheckpointPicker, { type CheckpointPickerProps } from './CheckpointPicker';
 
 interface Props {
   projectId: number;
@@ -20,6 +21,9 @@ interface Props {
   readOnly: boolean;
   readOnlyReason: string;
   memberName: string;
+  groupsHref?: string;
+  changeDayHref?: string;
+  checkpoint: CheckpointPickerProps;
 }
 
 const CHOICES: { status: AttendanceStatus; label: string; on: string; icon: string }[] = [
@@ -46,6 +50,7 @@ const SYNC_MS = 15000;
 
 export default function AttendanceSheet(props: Props) {
   const { projectId, dayId, groupId, readOnly } = props;
+  const checkpointId = props.checkpoint.selectedId;
   const [rows, setRows] = useState(props.rows);
   const [pending, setPending] = useState<Set<number>>(new Set());
   const [unsaved, setUnsaved] = useState<Set<number>>(new Set());
@@ -92,7 +97,7 @@ export default function AttendanceSheet(props: Props) {
       while (queue.current.has(studentId)) {
         const want = queue.current.get(studentId)!;
         queue.current.delete(studentId);
-        const res = await fieldApi('/api/field/attendance', { projectId, dayId, studentId, ...want });
+        const res = await fieldApi('/api/field/attendance', { projectId, dayId, checkpointId, studentId, ...want });
         if (res.ok) {
           attempts.current.delete(studentId);
           setFlag(setUnsaved, studentId, false);
@@ -126,7 +131,7 @@ export default function AttendanceSheet(props: Props) {
       inflight.current.delete(studentId);
       if (!queue.current.has(studentId)) setFlag(setPending, studentId, false);
     }
-  }, [projectId, dayId]);
+  }, [projectId, dayId, checkpointId]);
 
   function save(studentId: number, status: AttendanceStatus, otherReason: string | null = null) {
     const before = rows.find(r => r.studentId === studentId);
@@ -148,7 +153,7 @@ export default function AttendanceSheet(props: Props) {
   /** مزامنة مع الخادم: تُحدّث الطلاب الذين لا تغيير معلّق عليهم (لدعم أكثر من مشرف) */
   const sync = useCallback(async () => {
     const res = await fieldApi<{ rows: SheetRow[] }>(
-      `/api/field/attendance?projectId=${projectId}&dayId=${dayId}&groupId=${groupId}`, undefined, 'GET');
+      `/api/field/attendance?projectId=${projectId}&dayId=${dayId}&groupId=${groupId}&checkpointId=${checkpointId}`, undefined, 'GET');
     if (!res.ok) return false;
     const fresh = new Map(res.data.rows.map(r => [r.studentId, r]));
     const busy = (id: number) => queue.current.has(id) || inflight.current.has(id);
@@ -160,7 +165,7 @@ export default function AttendanceSheet(props: Props) {
       return added.length ? [...kept, ...added].sort((x, y) => x.name.localeCompare(y.name, 'ar', { numeric: true, sensitivity: 'base' })) : kept;
     });
     return true;
-  }, [projectId, dayId, groupId]);
+  }, [projectId, dayId, groupId, checkpointId]);
 
   useEffect(() => {
     const retryAll = () => { for (const id of queue.current.keys()) { clearTimeout(timers.current.get(id)); pump(id); } };
@@ -207,7 +212,7 @@ export default function AttendanceSheet(props: Props) {
 
   async function markAllPresent() {
     setBulkBusy(true);
-    const res = await fieldApi<{ changed: number }>('/api/field/attendance/all-present', { projectId, dayId, groupId });
+    const res = await fieldApi<{ changed: number }>('/api/field/attendance/all-present', { projectId, dayId, groupId, checkpointId });
     setBulkBusy(false);
     setConfirmAll(false);
     if (!res.ok) return flash(res.error);
@@ -225,13 +230,25 @@ export default function AttendanceSheet(props: Props) {
   }
 
   const waiting = unsaved.size;
+  const saving = pending.size > 0 || unsaved.size > 0 || bulkBusy;
+  const blocked = saving || otherFor !== null;
+  const blockedReason = saving ? 'انتظر حفظ الحالات المعلّقة قبل الانتقال إلى محطة أخرى.' : 'احفظ سبب «أخرى» أو ألغِ التعديل قبل تغيير المحطة.';
+  function guardNavigation(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (blocked) { e.preventDefault(); flash(blockedReason); }
+  }
 
   return (
     <div className="pb-28" data-fx="off">
-      <Link href={`/field/projects/${projectId}/days/${dayId}`} className="mb-2 inline-flex items-center gap-1.5 text-sm text-fd-muted hover:text-fd-petrol">
+      <Link onClick={guardNavigation} href={props.groupsHref ?? `/field/projects/${projectId}/days/${dayId}`} className="mb-2 inline-flex items-center gap-1.5 text-sm text-fd-muted hover:text-fd-petrol">
         <i className="fa-solid fa-arrow-right text-xs" /> المجموعات
       </Link>
       <div className="text-xs text-fd-muted">{props.projectName} • {props.dayText}</div>
+      {props.changeDayHref && (
+        <Link onClick={guardNavigation} href={props.changeDayHref} className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-fd-teal">
+          <i className="fa-regular fa-calendar" /> تغيير يوم التحضير
+        </Link>
+      )}
+      <CheckpointPicker {...props.checkpoint} disabled={blocked} disabledReason={blockedReason} />
       <div className="mt-1 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-fd-petrol">{props.groupName}</h1>
         {total > 0 && remaining === 0 && (
@@ -369,7 +386,7 @@ export default function AttendanceSheet(props: Props) {
                 <div className={`gbarfill h-full rounded-full transition-all duration-500 ${remaining ? 'bg-fd-orange' : 'bg-emerald-500'}`} style={{ width: `${total ? (marked / total) * 100 : 0}%` }} />
               </div>
             </div>
-            <button type="button" className={`${btn.dark} py-3`} disabled={remaining === 0} onClick={() => setConfirmAll(true)}>
+            <button type="button" className={`${btn.dark} py-3`} disabled={remaining === 0 || blocked} onClick={() => setConfirmAll(true)}>
               <i className="fa-solid fa-check-double" /> تحضير الجميع حاضر
             </button>
           </div>
