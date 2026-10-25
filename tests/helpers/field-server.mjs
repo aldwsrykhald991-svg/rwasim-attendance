@@ -17,9 +17,10 @@ export const tokens = {
   archived: 'archived-test-token-12345678901',
 };
 
-export async function startFieldServer() {
+export async function startFieldServer({ beforeStart } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'rwasim-attendance-test-'));
   const db = createClient({ url: `file:${join(dir, 'test.db')}` });
+  if (beforeStart) await beforeStart(db);
   const socket = createServer();
   socket.listen(0, '127.0.0.1');
   await once(socket, 'listening');
