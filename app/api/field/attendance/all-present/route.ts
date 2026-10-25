@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { bad, requireFieldMember } from '@/lib/field/auth';
 import { applyChanges } from '@/lib/field/attendance';
+import { checkpointId, hasAttendanceTarget } from '@/lib/field/checkpoints';
 
 /**
  * «تحضير الجميع حاضر»: يسجل طلاب المجموعة الذين لم يُحضَّروا بعد كحاضرين.
@@ -15,15 +16,16 @@ export async function POST(req: NextRequest) {
   const { teamId } = auth.ctx;
   const dayId = Number(body.dayId);
   const groupId = Number(body.groupId);
+  const checkpoint = checkpointId(body.checkpointId);
+  if (![projectId, dayId, groupId].every(n => Number.isSafeInteger(n) && n > 0) || !Number.isFinite(checkpoint)) return bad('طلب غير صحيح');
+  if (!await hasAttendanceTarget(teamId, projectId, dayId, groupId, checkpoint)) return bad('اليوم أو المجموعة أو المحطة غير موجودة', 404);
 
   const rows = await query<{ studentId: number }>(
-    `SELECT pp.studentId FROM FieldProjectParticipant pp
-     LEFT JOIN FieldAttendance a ON a.projectId = pp.projectId AND a.studentId = pp.studentId AND a.projectDayId = ? AND a.teamId = pp.teamId
-     WHERE pp.projectId = ? AND pp.groupId = ? AND pp.teamId = ? AND COALESCE(a.status, 'NOT_MARKED') = 'NOT_MARKED'`,
-    [dayId, projectId, groupId, teamId]);
+    `SELECT studentId FROM FieldProjectParticipant WHERE projectId = ? AND groupId = ? AND teamId = ?`,
+    [projectId, groupId, teamId]);
 
   const r = await applyChanges(auth.ctx, projectId, dayId,
-    rows.map(row => ({ studentId: Number(row.studentId), status: 'PRESENT' as const, otherReason: null })));
+    rows.map(row => ({ studentId: Number(row.studentId), status: 'PRESENT' as const, otherReason: null })), checkpoint, true);
   if (!r.ok) return bad(r.error, r.status);
   return NextResponse.json({ ok: true, changed: r.changed });
 }
