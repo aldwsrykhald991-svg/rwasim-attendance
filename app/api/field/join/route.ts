@@ -1,7 +1,7 @@
 // الدخول برابط التحضير السريع: بلا اسم فريق ولا كلمة مرور، ومقيد بمشروع واحد.
 import { NextRequest, NextResponse } from 'next/server';
 import { query, mutate } from '@/lib/db';
-import { ensureFieldTables, cleanName, todayInRiyadh } from '@/lib/field/db';
+import { ensureFieldTables, cleanName } from '@/lib/field/db';
 import { bad, setFieldCookie, signFieldToken } from '@/lib/field/auth';
 import { linkKey } from '@/lib/field/link';
 import { clientIp, isLimited, recordHit } from '@/lib/field/rate-limit';
@@ -57,10 +57,8 @@ export async function POST(req: NextRequest) {
     `INSERT INTO FieldProjectSupervisor (teamId, projectId, memberId, snapshotName) VALUES (?, ?, ?, ?)
      ON CONFLICT(projectId, memberId) DO NOTHING`, [teamId, projectId, memberId, memberName]);
 
-  // إن كان اليوم أحد أيام المشروع نفتح يومه مباشرة
-  const [today] = await query<{ id: number }>(
-    `SELECT id FROM FieldProjectDay WHERE projectId = ? AND teamId = ? AND date = ?`, [projectId, teamId, todayInRiyadh()]);
-  const next = today ? `/field/projects/${projectId}/days/${Number(today.id)}` : `/field/projects/${projectId}`;
+  // يبدأ الرابط السريع بالمجموعات، ويُحسم يوم التحضير في صفحة المجموعات.
+  const next = `/field/projects/${projectId}/groups`;
 
   const res = NextResponse.json({ ok: true, next });
   setFieldCookie(res, await signFieldToken({ teamId, memberId, projectId, linkKey: linkKey(link.token) }));
