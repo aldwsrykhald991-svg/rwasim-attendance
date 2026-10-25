@@ -3,6 +3,7 @@ import { isAttendanceStatus } from '@/lib/field/db';
 import { bad, requireFieldMember } from '@/lib/field/auth';
 import { applyChanges } from '@/lib/field/attendance';
 import { getGroupSheet } from '@/lib/field/data';
+import { checkpointId, hasAttendanceTarget } from '@/lib/field/checkpoints';
 
 /** قراءة حالة مجموعة في يوم — تُستعمل لمزامنة الشاشة بين أكثر من مشرف */
 export async function GET(req: NextRequest) {
@@ -12,8 +13,11 @@ export async function GET(req: NextRequest) {
   if (!auth.ok) return auth.res;
   const dayId = Number(q.get('dayId'));
   const groupId = Number(q.get('groupId'));
+  const checkpoint = checkpointId(q.get('checkpointId'));
   if (![projectId, dayId, groupId].every(n => Number.isInteger(n) && n > 0)) return bad('طلب غير صحيح');
-  const rows = await getGroupSheet(auth.ctx.teamId, projectId, dayId, groupId);
+  if (!Number.isFinite(checkpoint)) return bad('محطة غير صحيحة');
+  if (!await hasAttendanceTarget(auth.ctx.teamId, projectId, dayId, groupId, checkpoint)) return bad('اليوم أو المجموعة أو المحطة غير موجودة', 404);
+  const rows = await getGroupSheet(auth.ctx.teamId, projectId, dayId, groupId, checkpoint);
   return NextResponse.json({ ok: true, rows }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
@@ -32,7 +36,7 @@ export async function POST(req: NextRequest) {
   const otherReason = body.status === 'OTHER' ? String(body.otherReason ?? '').trim().slice(0, 300) : null;
   if (body.status === 'OTHER' && !otherReason) return bad('اكتب السبب لحفظ حالة «أخرى»');
 
-  const r = await applyChanges(auth.ctx, projectId, dayId, [{ studentId, status: body.status, otherReason }]);
+  const r = await applyChanges(auth.ctx, projectId, dayId, [{ studentId, status: body.status, otherReason }], checkpointId(body.checkpointId));
   if (!r.ok) return bad(r.error, r.status);
   return NextResponse.json({ ok: true, changed: r.changed });
 }

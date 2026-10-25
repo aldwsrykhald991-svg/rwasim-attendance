@@ -24,7 +24,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
   // من له جلسة صالحة في الفريق نفسه يدخل مباشرة
   const ctx = await getFieldContext();
   if (ctx?.memberId && ctx.teamId === Number(link.teamId) && (!ctx.scopeProjectId || ctx.scopeProjectId === Number(link.projectId))) {
-    redirect(`/field/projects/${Number(link.projectId)}`);
+    redirect(`/field/projects/${Number(link.projectId)}/groups`);
   }
 
   const names = await query<{ id: number; name: string }>(

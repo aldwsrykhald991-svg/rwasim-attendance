@@ -138,6 +138,82 @@ const STATEMENTS = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_faudit_project ON FieldAttendanceAuditLog(projectId, changedAt)`,
 
+  // إضافات فقط: يبقى الحضور القديم كما هو، ويمثل التحضير الأول في كل يوم.
+  `CREATE TABLE IF NOT EXISTS FieldCheckpoint (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teamId INTEGER NOT NULL,
+    projectId INTEGER NOT NULL,
+    projectDayId INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    createdByName TEXT NOT NULL,
+    createdAt TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_fcheckpoint_name ON FieldCheckpoint(teamId, projectId, projectDayId, name COLLATE NOCASE)`,
+  `CREATE TABLE IF NOT EXISTS FieldCheckpointAttendance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teamId INTEGER NOT NULL,
+    projectId INTEGER NOT NULL,
+    projectDayId INTEGER NOT NULL,
+    checkpointId INTEGER NOT NULL,
+    groupId INTEGER NOT NULL,
+    studentId INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'NOT_MARKED',
+    otherReason TEXT,
+    recordedById INTEGER,
+    recordedByName TEXT,
+    recordedAt TEXT NOT NULL DEFAULT (datetime('now')),
+    updatedById INTEGER,
+    updatedByName TEXT,
+    updatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK (status IN ('PRESENT','ABSENT','NOT_MARKED','OTHER')),
+    CHECK (status <> 'OTHER' OR length(trim(coalesce(otherReason, ''))) > 0),
+    CHECK (checkpointId > 0)
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_fcatt_unique ON FieldCheckpointAttendance(projectId, projectDayId, checkpointId, studentId)`,
+  `CREATE INDEX IF NOT EXISTS idx_fcatt_checkpoint ON FieldCheckpointAttendance(teamId, projectId, projectDayId, checkpointId)`,
+  `CREATE TABLE IF NOT EXISTS FieldCheckpointAuditLog (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teamId INTEGER NOT NULL,
+    attendanceId INTEGER NOT NULL,
+    projectId INTEGER NOT NULL,
+    projectDayId INTEGER NOT NULL,
+    checkpointId INTEGER NOT NULL,
+    groupId INTEGER NOT NULL,
+    studentId INTEGER NOT NULL,
+    studentName TEXT NOT NULL,
+    projectName TEXT NOT NULL,
+    dayLabel TEXT NOT NULL,
+    groupName TEXT NOT NULL,
+    oldStatus TEXT NOT NULL,
+    newStatus TEXT NOT NULL,
+    oldReason TEXT,
+    newReason TEXT,
+    changedById INTEGER,
+    changedByName TEXT NOT NULL,
+    changedAt TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_fcaudit_project ON FieldCheckpointAuditLog(teamId, projectId, changedAt)`,
+  `CREATE VIEW IF NOT EXISTS FieldAttendanceRecord AS
+    SELECT a.id, a.teamId, a.projectId, a.projectDayId, a.groupId, a.studentId, a.status, a.otherReason,
+      a.recordedById, a.recordedByName, a.recordedAt, a.updatedById, a.updatedByName, a.updatedAt,
+      0 AS checkpointId, 'التحضير الأول' AS checkpointName
+    FROM FieldAttendance a
+    UNION ALL
+    SELECT a.id, a.teamId, a.projectId, a.projectDayId, a.groupId, a.studentId, a.status, a.otherReason,
+      a.recordedById, a.recordedByName, a.recordedAt, a.updatedById, a.updatedByName, a.updatedAt,
+      a.checkpointId, c.name AS checkpointName
+    FROM FieldCheckpointAttendance a
+    JOIN FieldCheckpoint c ON c.id = a.checkpointId AND c.teamId = a.teamId
+      AND c.projectId = a.projectId AND c.projectDayId = a.projectDayId`,
+  `CREATE VIEW IF NOT EXISTS FieldAttendanceHistory AS
+    SELECT 'first-' || id AS eventKey, id, teamId, attendanceId, projectId, projectDayId, groupId, studentId,
+      studentName, projectName, dayLabel, groupName, oldStatus, newStatus, oldReason, newReason,
+      changedById, changedByName, changedAt FROM FieldAttendanceAuditLog
+    UNION ALL
+    SELECT 'checkpoint-' || id AS eventKey, id, teamId, attendanceId, projectId, projectDayId, groupId, studentId,
+      studentName, projectName, dayLabel, groupName, oldStatus, newStatus, oldReason, newReason,
+      changedById, changedByName, changedAt FROM FieldCheckpointAuditLog`,
+
   // رابط التحضير السريع: مفتاح واحد لكل مشروع
   `CREATE TABLE IF NOT EXISTS FieldProjectLink (
     projectId INTEGER PRIMARY KEY,

@@ -1,6 +1,7 @@
 // قراءات منصة التحضير الميداني — كل دالة تستقبل teamId من الجلسة (الخادم)
 // وكل استعلام مقيد به، فلا يمكن لفريق قراءة بيانات فريق آخر حتى بمعرفة الرابط.
 import { query } from '@/lib/db';
+import { getProjectCheckpoints, checkpointsForDay } from './checkpoints';
 import { ensureFieldTables, todayInRiyadh, type AttendanceStatus, type ProjectStatus } from './db';
 
 export interface ProjectRow {
@@ -129,31 +130,39 @@ export async function getProject(teamId: number, projectId: number) {
 
 /** عدادات الحضور لكل (يوم × مجموعة). المجموعة تُحسب حسب مجموعة المشارك في المشروع. */
 export async function getProjectCounts(teamId: number, projectId: number, days: DayRow[], groups: GroupRow[]) {
-  const [groupSizes, rows] = await Promise.all([
+  const [groupSizes, rows, checkpoints] = await Promise.all([
     query<{ groupId: number; n: number }>(
       `SELECT groupId, COUNT(*) AS n FROM FieldProjectParticipant WHERE projectId = ? AND teamId = ? GROUP BY groupId`, [projectId, teamId]),
-    query<{ dayId: number; groupId: number; status: string; n: number }>(
-      `SELECT a.projectDayId AS dayId, pp.groupId AS groupId, a.status, COUNT(*) AS n
-       FROM FieldAttendance a
+    query<{ dayId: number; checkpointId: number; groupId: number; status: string; n: number }>(
+      `SELECT a.projectDayId AS dayId, a.checkpointId, pp.groupId AS groupId, a.status, COUNT(*) AS n
+       FROM FieldAttendanceRecord a
        JOIN FieldProjectParticipant pp ON pp.projectId = a.projectId AND pp.studentId = a.studentId AND pp.teamId = a.teamId
        WHERE a.projectId = ? AND a.teamId = ?
-       GROUP BY a.projectDayId, pp.groupId, a.status`, [projectId, teamId]),
+       GROUP BY a.projectDayId, a.checkpointId, pp.groupId, a.status`, [projectId, teamId]),
+    getProjectCheckpoints(teamId, projectId),
   ]);
   const size = new Map(groupSizes.map(g => [Number(g.groupId), Number(g.n)]));
   const cell = new Map<string, Counts>();
-  for (const d of days) for (const g of groups) cell.set(`${d.id}:${g.id}`, emptyCounts(size.get(g.id) ?? 0));
+  const forDay = (dayId: number) => checkpointsForDay(checkpoints, dayId);
+  const latest = (dayId: number) => forDay(dayId).at(-1)!.id;
+  for (const d of days) for (const c of forDay(d.id)) for (const g of groups) {
+    cell.set(`${d.id}:${c.id}:${g.id}`, emptyCounts(size.get(g.id) ?? 0));
+  }
   for (const r of rows) {
-    const c = cell.get(`${Number(r.dayId)}:${Number(r.groupId)}`);
+    const c = cell.get(`${Number(r.dayId)}:${Number(r.checkpointId)}:${Number(r.groupId)}`);
     if (c) addStatus(c, r.status, Number(r.n));
   }
+  const checkpointCounts = (dayId: number, checkpointId = latest(dayId)) =>
+    sumCounts(groups.map(g => cell.get(`${dayId}:${checkpointId}:${g.id}`) ?? emptyCounts()));
   const byDay = new Map<number, Counts>();
-  for (const d of days) byDay.set(d.id, sumCounts(groups.map(g => cell.get(`${d.id}:${g.id}`)!)));
+  for (const d of days) byDay.set(d.id, checkpointCounts(d.id));
   const byGroup = new Map<number, Counts>();
-  for (const g of groups) byGroup.set(g.id, sumCounts(days.map(d => cell.get(`${d.id}:${g.id}`)!)));
+  for (const g of groups) byGroup.set(g.id, sumCounts(days.map(d => cell.get(`${d.id}:${latest(d.id)}:${g.id}`)!)));
   const total = sumCounts([...byDay.values()]);
   return {
-    cell: (dayId: number, groupId: number) => cell.get(`${dayId}:${groupId}`) ?? emptyCounts(0),
-    byDay: (dayId: number) => byDay.get(dayId) ?? emptyCounts(0),
+    checkpoints: forDay,
+    cell: (dayId: number, groupId: number, checkpointId = latest(dayId)) => cell.get(`${dayId}:${checkpointId}:${groupId}`) ?? emptyCounts(0),
+    byDay: checkpointCounts,
     byGroup: (groupId: number) => byGroup.get(groupId) ?? emptyCounts(0),
     total,
   };
@@ -170,24 +179,24 @@ export interface SheetRow {
   updatedAt: string | null;
 }
 
-export async function getGroupSheet(teamId: number, projectId: number, dayId: number, groupId: number): Promise<SheetRow[]> {
+export async function getGroupSheet(teamId: number, projectId: number, dayId: number, groupId: number, checkpointId = 0): Promise<SheetRow[]> {
   const rows = await query<SheetRow>(
     `SELECT pp.studentId, pp.snapshotName AS name,
        COALESCE(a.status, 'NOT_MARKED') AS status, a.otherReason,
        a.recordedByName, a.recordedAt, a.updatedByName, a.updatedAt
      FROM FieldProjectParticipant pp
-     LEFT JOIN FieldAttendance a
-       ON a.projectId = pp.projectId AND a.studentId = pp.studentId AND a.projectDayId = ? AND a.teamId = pp.teamId
+     LEFT JOIN FieldAttendanceRecord a
+       ON a.projectId = pp.projectId AND a.studentId = pp.studentId AND a.projectDayId = ? AND a.checkpointId = ? AND a.teamId = pp.teamId
      WHERE pp.projectId = ? AND pp.groupId = ? AND pp.teamId = ?
-     ORDER BY pp.snapshotName`, [dayId, projectId, groupId, teamId]);
+     ORDER BY pp.snapshotName`, [dayId, checkpointId, projectId, groupId, teamId]);
   return rows.map(r => ({ ...r, studentId: Number(r.studentId) })).sort(byName);
 }
 
 export async function getOtherCases(teamId: number, projectId: number) {
-  return query<{ dayId: number; studentName: string; groupName: string; otherReason: string; byName: string | null; at: string }>(
-    `SELECT a.projectDayId AS dayId, pp.snapshotName AS studentName, pp.snapshotGroupName AS groupName, a.otherReason,
+  return query<{ dayId: number; checkpointName: string; studentName: string; groupName: string; otherReason: string; byName: string | null; at: string }>(
+    `SELECT a.projectDayId AS dayId, a.checkpointName, pp.snapshotName AS studentName, pp.snapshotGroupName AS groupName, a.otherReason,
        COALESCE(a.updatedByName, a.recordedByName) AS byName, a.updatedAt AS at
-     FROM FieldAttendance a
+     FROM FieldAttendanceRecord a
      JOIN FieldProjectParticipant pp ON pp.projectId = a.projectId AND pp.studentId = a.studentId AND pp.teamId = a.teamId
      WHERE a.projectId = ? AND a.teamId = ? AND a.status = 'OTHER'
      ORDER BY a.projectDayId, pp.snapshotName`, [projectId, teamId]);
@@ -195,29 +204,29 @@ export async function getOtherCases(teamId: number, projectId: number) {
 
 export async function getMarkers(teamId: number, projectId: number) {
   return query<{ name: string; n: number }>(
-    `SELECT changedByName AS name, COUNT(*) AS n FROM FieldAttendanceAuditLog
+    `SELECT changedByName AS name, COUNT(*) AS n FROM FieldAttendanceHistory
      WHERE projectId = ? AND teamId = ? GROUP BY changedByName ORDER BY n DESC`, [projectId, teamId]);
 }
 
 export async function getAuditLog(teamId: number, projectId: number, limit = 500) {
   return query<{
-    id: number; studentName: string; dayLabel: string; groupName: string; oldStatus: string; newStatus: string;
+    id: string; studentName: string; dayLabel: string; groupName: string; oldStatus: string; newStatus: string;
     oldReason: string | null; newReason: string | null; changedByName: string; changedAt: string;
   }>(
-    `SELECT id, studentName, dayLabel, groupName, oldStatus, newStatus, oldReason, newReason, changedByName, changedAt
-     FROM FieldAttendanceAuditLog WHERE projectId = ? AND teamId = ? ORDER BY changedAt DESC, id DESC LIMIT ?`,
+    `SELECT eventKey AS id, studentName, dayLabel, groupName, oldStatus, newStatus, oldReason, newReason, changedByName, changedAt
+     FROM FieldAttendanceHistory WHERE projectId = ? AND teamId = ? ORDER BY changedAt DESC, FieldAttendanceHistory.id DESC, eventKey DESC LIMIT ?`,
     [projectId, teamId, limit]);
 }
 
 /** طلاب كل مجموعة مع حالتهم في يوم معيّن (لعرض الأسماء تحت المجموعة) */
-export async function getDayRoster(teamId: number, projectId: number, dayId: number) {
+export async function getDayRoster(teamId: number, projectId: number, dayId: number, checkpointId = 0) {
   const rows = await query<{ groupId: number; studentId: number; name: string; status: AttendanceStatus; otherReason: string | null }>(
     `SELECT pp.groupId, pp.studentId, pp.snapshotName AS name,
        COALESCE(a.status, 'NOT_MARKED') AS status, a.otherReason
      FROM FieldProjectParticipant pp
-     LEFT JOIN FieldAttendance a
-       ON a.projectId = pp.projectId AND a.studentId = pp.studentId AND a.projectDayId = ? AND a.teamId = pp.teamId
+     LEFT JOIN FieldAttendanceRecord a
+       ON a.projectId = pp.projectId AND a.studentId = pp.studentId AND a.projectDayId = ? AND a.checkpointId = ? AND a.teamId = pp.teamId
      WHERE pp.projectId = ? AND pp.teamId = ?
-     ORDER BY pp.snapshotName`, [dayId, projectId, teamId]);
+     ORDER BY pp.snapshotName`, [dayId, checkpointId, projectId, teamId]);
   return rows.map(r => ({ ...r, groupId: Number(r.groupId), studentId: Number(r.studentId) })).sort(byName);
 }

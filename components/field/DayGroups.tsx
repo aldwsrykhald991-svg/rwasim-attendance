@@ -14,7 +14,7 @@ export interface DayGroup {
   students: { studentId: number; name: string; status: string; otherReason: string | null }[];
 }
 
-export default function DayGroups({ projectId, dayId, groups }: { projectId: number; dayId: number; groups: DayGroup[] }) {
+export default function DayGroups({ projectId, dayId, groups, checkpointId = 0 }: { projectId: number; dayId: number; groups: DayGroup[]; checkpointId?: number }) {
   const [open, setOpen] = useState<Set<number>>(new Set());
   const allOpen = groups.length > 0 && open.size === groups.length;
 
@@ -79,7 +79,7 @@ export default function DayGroups({ projectId, dayId, groups }: { projectId: num
                       ))}
                     </ol>
                   )}
-                  <Link href={`/field/projects/${projectId}/days/${dayId}/groups/${g.id}`} className={`${btn.primary} mt-3 w-full`}>
+                  <Link href={`/field/projects/${projectId}/days/${dayId}/groups/${g.id}${checkpointId ? `?checkpointId=${checkpointId}` : ''}`} className={`${btn.primary} mt-3 w-full`}>
                     <i className="fa-solid fa-clipboard-check" /> {prog === 'DONE' ? 'فتح المجموعة' : 'تحضير المجموعة'}
                   </Link>
                 </div>

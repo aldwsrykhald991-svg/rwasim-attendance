@@ -1,8 +1,9 @@
-// تصدير حضور المشروع كملف CSV (طالب × يوم) يفتح مباشرة في Excel.
+// تصدير حضور المشروع كملف CSV (طالب × يوم × محطة) يفتح مباشرة في Excel.
 import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 import { bad, requireFieldMember } from '@/lib/field/auth';
 import { getProject } from '@/lib/field/data';
+import { getProjectCheckpoints, checkpointsForDay } from '@/lib/field/checkpoints';
 import { dayLabel, formatDay, STATUS_LABEL } from '@/lib/field/format';
 
 /** يمنع تنفيذ الخلية كمعادلة في Excel، ويهرّب الفواصل وعلامات الاقتباس */
@@ -20,19 +21,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ pro
   const data = await getProject(teamId, projectId);
   if (!data) return bad('المشروع غير موجود', 404);
 
-  const marks = await query<{ studentId: number; dayId: number; status: string; otherReason: string | null }>(
-    `SELECT studentId, projectDayId AS dayId, status, otherReason FROM FieldAttendance WHERE projectId = ? AND teamId = ?`,
+  const marks = await query<{ studentId: number; dayId: number; checkpointId: number; status: string; otherReason: string | null }>(
+    `SELECT studentId, projectDayId AS dayId, checkpointId, status, otherReason FROM FieldAttendanceRecord WHERE projectId = ? AND teamId = ?`,
     [projectId, teamId]);
-  const by = new Map(marks.map(m => [`${Number(m.studentId)}:${Number(m.dayId)}`, m]));
+  const by = new Map(marks.map(m => [`${Number(m.studentId)}:${Number(m.dayId)}:${Number(m.checkpointId)}`, m]));
 
-  const header = ['الاسم', 'المجموعة', ...data.days.map(d => `${dayLabel(d.index, d.name)} (${formatDay(d.date)})`), 'حاضر', 'غائب', 'أخرى', 'لم يتم التحضير'];
+  const checkpoints = await getProjectCheckpoints(teamId, projectId);
+  const rounds = data.days.flatMap(day => checkpointsForDay(checkpoints, day.id).map(checkpoint => ({ day, checkpoint })));
+  const header = ['الاسم' , 'المجموعة', ...rounds.map(({ day: d, checkpoint: c }) => `${dayLabel(d.index, d.name)} (${formatDay(d.date)}) — ${c.name}`), 'حاضر', 'غائب', 'أخرى', 'لم يتم التحضير'];
   const lines = [header.map(cell).join(',')];
   const people = [...data.participants].sort((a, b) =>
     a.snapshotGroupName.localeCompare(b.snapshotGroupName, 'ar') || a.snapshotName.localeCompare(b.snapshotName, 'ar'));
   for (const p of people) {
     const count = { PRESENT: 0, ABSENT: 0, OTHER: 0, NOT_MARKED: 0 } as Record<string, number>;
-    const cols = data.days.map(d => {
-      const m = by.get(`${p.studentId}:${d.id}`);
+    const cols = rounds.map(({ day: d, checkpoint: c }) => {
+      const m = by.get(`${p.studentId}:${d.id}:${c.id}`);
       const status = m?.status ?? 'NOT_MARKED';
       count[status] = (count[status] ?? 0) + 1;
       return status === 'OTHER' && m?.otherReason ? `${STATUS_LABEL.OTHER}: ${m.otherReason}` : STATUS_LABEL[status] ?? status;
