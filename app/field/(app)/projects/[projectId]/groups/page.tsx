@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireFieldPage } from '@/lib/field/auth';
 import { getProject, getProjectCounts } from '@/lib/field/data';
+import { selectCheckpoint } from '@/lib/field/checkpoints';
+import CheckpointPicker from '@/components/field/CheckpointPicker';
 import { todayInRiyadh } from '@/lib/field/db';
 import { dayLabel, formatDayFull, progressOf } from '@/lib/field/format';
 import { Bar, Empty, PageTitle, ProgressBadge } from '@/components/field/ui';
 
-export default async function ProjectGroupsPage({ params }: { params: Promise<{ projectId: string }> }) {
+export default async function ProjectGroupsPage({ params, searchParams }: { params: Promise<{ projectId: string }>; searchParams: Promise<{ dayId?: string; checkpointId?: string }> }) {
   const projectId = Number((await params).projectId);
   const ctx = await requireFieldPage(projectId);
   const data = await getProject(ctx.teamId, projectId);
@@ -15,8 +17,13 @@ export default async function ProjectGroupsPage({ params }: { params: Promise<{ 
   // لا نختار يوماً سابقاً أو قادماً تلقائياً، ولا نخمن عند تكرار تاريخ اليوم.
   const todayDate = todayInRiyadh();
   const todayDays = data.days.filter(d => d.date === todayDate);
-  const today = todayDays.length === 1 ? todayDays[0] : null;
+  const q = await searchParams;
+  const today = q.dayId !== undefined ? data.days.find(d => String(d.id) === q.dayId) : todayDays.length === 1 ? todayDays[0] : null;
+  if (q.dayId !== undefined && !today) notFound();
   const counts = today ? await getProjectCounts(ctx.teamId, projectId, [today], data.groups) : null;
+  const checkpoints = today && counts ? counts.checkpoints(today.id) : [];
+  const checkpoint = checkpoints.length ? selectCheckpoint(checkpoints, q.checkpointId) : null;
+  if (today && !checkpoint) notFound();
   const archived = data.project.status === 'FINISHED';
   const authorized = data.supervisors.some(s => s.memberId === ctx.memberId);
 
@@ -37,7 +44,7 @@ export default async function ProjectGroupsPage({ params }: { params: Promise<{ 
       {today ? (
         <div className="gcard-soft mb-5 rounded-2xl p-4">
           <p className="font-bold text-fd-petrol"><i className="fa-regular fa-calendar-check ml-2 text-fd-teal" />{dayLabel(today.index, today.name)}</p>
-          <p className="mt-1 text-sm text-fd-muted">{formatDayFull(today.date)} — تم اختيار يوم التحضير تلقائياً.</p>
+          <p className="mt-1 text-sm text-fd-muted">{formatDayFull(today.date)} — {q.dayId ? 'يوم التحضير المحدد.' : 'تم اختيار يوم التحضير تلقائياً.'}</p>
           <p className="mt-2 text-sm text-fd-petrol">اختر مجموعتك لفتح كشف الطلاب مباشرة.</p>
         </div>
       ) : data.days.length > 0 ? (
@@ -49,10 +56,13 @@ export default async function ProjectGroupsPage({ params }: { params: Promise<{ 
         <Empty icon="fa-calendar">لم تُضف أيام لهذا المشروع بعد. اطلب من مسؤول المشروع إضافة يوم للتحضير.</Empty>
       )}
 
+      {today && checkpoint && <CheckpointPicker projectId={projectId} dayId={today.id} checkpoints={checkpoints}
+        selectedId={checkpoint.id} canCreate={!archived && authorized} href={`/field/projects/${projectId}/groups?dayId=${today.id}`} />}
+
       {data.groups.length === 0 ? <Empty icon="fa-layer-group">لا توجد مجموعات في هذا المشروع.</Empty> : (
         <div className="grid gap-3 sm:grid-cols-2">
           {data.groups.map(g => {
-            const c = today && counts ? counts.cell(today.id, g.id) : null;
+            const c = today && counts ? counts.cell(today.id, g.id, checkpoint!.id) : null;
             const total = c?.total ?? data.participants.filter(p => p.groupId === g.id).length;
             const content = (
               <>
@@ -77,7 +87,7 @@ export default async function ProjectGroupsPage({ params }: { params: Promise<{ 
             );
             return data.days.length ? (
               <Link key={g.id}
-                href={today ? `/field/projects/${projectId}/days/${today.id}/groups/${g.id}?from=groups` : `/field/projects/${projectId}/groups/${g.id}`}
+                href={today ? `/field/projects/${projectId}/days/${today.id}/groups/${g.id}?from=groups${checkpoint?.id ? `&checkpointId=${checkpoint.id}` : ''}` : `/field/projects/${projectId}/groups/${g.id}`}
                 className="gcard block rounded-2xl p-4 transition hover:ring-2 hover:ring-fd-teal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-teal">
                 {content}
               </Link>
