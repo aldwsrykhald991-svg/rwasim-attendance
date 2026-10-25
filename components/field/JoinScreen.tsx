@@ -41,7 +41,7 @@ export default function JoinScreen({ state, token, projectName, teamName, names 
         )}
       </div>
 
-      <div className="gcard rw-fx-float w-full max-w-md rounded-3xl p-5 sm:p-6">
+      <div className="gcard w-full max-w-md rounded-3xl p-5 sm:p-6">
         {state === 'invalid' && (
           <p className="text-center text-slate-700">هذا الرابط لم يعد صالحاً أو تم تغييره. اطلب رابطاً جديداً من مسؤول المشروع.</p>
         )}
