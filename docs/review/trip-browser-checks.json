@@ -1,0 +1,21 @@
+{
+  "mobile": "390x844",
+  "desktop": "1280x900",
+  "checks": [
+    "identity-to-groups",
+    "one-click-group",
+    "two-checkpoints-on-one-day",
+    "new-checkpoints-unmarked",
+    "save-to-correct-checkpoint",
+    "return-to-earlier-checkpoint",
+    "same-checkpoint-other-group",
+    "pending-write-blocks-switch",
+    "unsaved-reason-blocks-switch",
+    "full-checkpoint-name-visible",
+    "legacy-records-unchanged",
+    "report-lists-checkpoints",
+    "no-overflow",
+    "no-browser-errors"
+  ],
+  "errors": []
+}
