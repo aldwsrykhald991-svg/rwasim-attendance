@@ -87,9 +87,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ pr
     if (!d) return bad('اليوم غير موجود', 404);
     const [{ n }] = await query<{ n: number }>(`SELECT COUNT(*) AS n FROM FieldProjectDay WHERE projectId = ? AND teamId = ?`, [projectId, teamId]);
     if (Number(n) <= 1) return bad('المشروع يحتاج يوماً واحداً على الأقل');
-    const [used] = await query(`SELECT id FROM FieldAttendance WHERE projectDayId = ? AND teamId = ? LIMIT 1`, [dayId, teamId]);
+    const [used] = await query(`SELECT id FROM FieldAttendanceRecord WHERE projectDayId = ? AND teamId = ? LIMIT 1`, [dayId, teamId]);
     if (used) return bad('لا يمكن حذف يوم بدأ فيه التحضير');
-    await mutate(`DELETE FROM FieldProjectDay WHERE id = ? AND teamId = ?`, [dayId, teamId]);
+    await batch([
+      { sql: `DELETE FROM FieldCheckpoint WHERE projectDayId = ? AND projectId = ? AND teamId = ?`, args: [dayId, projectId, teamId] },
+      { sql: `DELETE FROM FieldProjectDay WHERE id = ? AND teamId = ?`, args: [dayId, teamId] },
+    ]);
     await resequenceDays(teamId, projectId);
     return NextResponse.json({ ok: true });
   }
@@ -170,11 +173,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ pr
   if (action === 'removeParticipant') {
     const studentId = Number(body.studentId);
     const [used] = await query(
-      `SELECT id FROM FieldAttendance WHERE projectId = ? AND studentId = ? AND teamId = ? AND status <> 'NOT_MARKED' LIMIT 1`,
+      `SELECT id FROM FieldAttendanceRecord WHERE projectId = ? AND studentId = ? AND teamId = ? AND status <> 'NOT_MARKED' LIMIT 1`,
       [projectId, studentId, teamId]);
     if (used) return bad('لا يمكن إزالة طالب له سجل حضور في المشروع');
     await batch([
       { sql: `DELETE FROM FieldAttendance WHERE projectId = ? AND studentId = ? AND teamId = ?`, args: [projectId, studentId, teamId] },
+      { sql: `DELETE FROM FieldCheckpointAttendance WHERE projectId = ? AND studentId = ? AND teamId = ?`, args: [projectId, studentId, teamId] },
       { sql: `DELETE FROM FieldProjectParticipant WHERE projectId = ? AND studentId = ? AND teamId = ?`, args: [projectId, studentId, teamId] },
     ]);
     return NextResponse.json({ ok: true });
@@ -285,6 +289,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ p
 
   const args = [projectId, teamId];
   await batch([
+    { sql: `DELETE FROM FieldCheckpointAuditLog WHERE projectId = ? AND teamId = ?`, args },
+    { sql: `DELETE FROM FieldCheckpointAttendance WHERE projectId = ? AND teamId = ?`, args },
+    { sql: `DELETE FROM FieldCheckpoint WHERE projectId = ? AND teamId = ?`, args },
     { sql: `DELETE FROM FieldAttendance WHERE projectId = ? AND teamId = ?`, args },
     { sql: `DELETE FROM FieldAttendanceAuditLog WHERE projectId = ? AND teamId = ?`, args },
     { sql: `DELETE FROM FieldProjectParticipant WHERE projectId = ? AND teamId = ?`, args },
