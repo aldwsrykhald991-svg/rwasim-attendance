@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireFieldPage } from '@/lib/field/auth';
+import { getProjectCheckpoints, checkpointsForDay } from '@/lib/field/checkpoints';
 import { getProject } from '@/lib/field/data';
 import { dayLabel, formatDayFull } from '@/lib/field/format';
 import { Empty, PageTitle } from '@/components/field/ui';
@@ -14,6 +15,8 @@ export default async function GroupDayPickerPage({ params }: { params: Promise<{
   const group = data?.groups.find(g => g.id === groupId);
   if (!data || !group) notFound();
 
+  const checkpoints = await getProjectCheckpoints(ctx.teamId, projectId);
+
   return (
     <div>
       <PageTitle
@@ -24,7 +27,7 @@ export default async function GroupDayPickerPage({ params }: { params: Promise<{
       {data.days.length === 0 ? <Empty icon="fa-calendar">لا توجد أيام في هذا المشروع.</Empty> : (
         <div className="grid gap-3 sm:grid-cols-2">
           {data.days.map(d => (
-            <Link key={d.id} href={`/field/projects/${projectId}/days/${d.id}/groups/${groupId}?from=groups`}
+            <Link key={d.id} href={`/field/projects/${projectId}/days/${d.id}/groups/${groupId}?from=groups${checkpointsForDay(checkpoints, d.id).at(-1)!.id ? `&checkpointId=${checkpointsForDay(checkpoints, d.id).at(-1)!.id}` : ''}`}
               className="gcard block rounded-2xl p-4 transition hover:ring-2 hover:ring-fd-teal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fd-teal">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="font-bold text-fd-petrol">{dayLabel(d.index, d.name)}</h2>
